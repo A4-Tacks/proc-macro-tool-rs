@@ -26,6 +26,13 @@ pub trait SetSpan: Sized {
     /// Call [`TokenTree::set_span`]
     fn set_span(&mut self, span: Span);
 
+    /// Call [`TokenTree::span`]
+    fn span(&self) -> Span;
+
+    fn span_zip(self) -> (Span, Self) {
+        (self.span(), self)
+    }
+
     fn set_spaned(mut self, span: Span) -> Self {
         self.set_span(span);
         self
@@ -34,6 +41,10 @@ pub trait SetSpan: Sized {
 macro_rules! impl_set_span {
     ($ty:ty) => {
         impl SetSpan for $ty {
+            fn span(&self) -> Span {
+                self.span()
+            }
+
             fn set_span(&mut self, span: Span) {
                 self.set_span(span);
             }
