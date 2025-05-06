@@ -479,14 +479,14 @@ impl<I: ExactSizeIterator<Item = TokenTree>> ExactSizeIterator for ParseIter<I> 
 impl<I: FusedIterator<Item = TokenTree>> FusedIterator for ParseIter<I> { }
 
 fn pfunc_impl<F, R>(
-    input: TokenStream,
+    stream: TokenStream,
     proc_input: bool,
     names: &[&str],
     f: &mut F,
 ) -> Result<TokenStream, R>
 where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
 {
-    let mut iter = input.into_iter().parse_iter();
+    let mut iter = stream.into_iter().parse_iter();
     let mut result = TokenStream::new();
 
     while let Some(tt) = iter.next() {
@@ -502,16 +502,23 @@ where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
                 let mut group = iter.next().unwrap().into_group().unwrap();
                 if proc_input {
                     let sub = pfunc_impl(
-                        group.stream(), proc_input, names, f)?;
-                    group = Group::new(group.delimiter(), sub)
+                        group.stream(),
+                        proc_input,
+                        names,
+                        f,
+                    )?;
+                    group = sub
+                        .grouped(group.delimiter())
                         .set_spaned(group.span());
                 }
                 result.add(f(ident, group)?);
             },
             TokenTree::Group(g) => {
                 let sub = pfunc_impl(g.stream(), proc_input, names, f)?;
-                let tt = Group::new(g.delimiter(), sub);
-                result.push(tt.set_spaned(g.span()).into());
+                result.push(sub
+                    .grouped(g.delimiter())
+                    .set_spaned(g.span())
+                    .into());
             },
             _ => _ = result.push(tt),
         }
@@ -524,7 +531,7 @@ where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
 ///
 /// Apply pfunc for `(...)` when `proc_input` is `true`
 pub fn pfunc<'a>(
-    input: TokenStream,
+    stream: TokenStream,
     proc_input: bool,
     names: impl AsRef<[&'a str]>,
     mut f: impl FnMut(Ident, Group) -> TokenStream,
@@ -532,7 +539,7 @@ pub fn pfunc<'a>(
     let f = &mut |i, g| {
         Ok::<_, ()>(f(i, g))
     };
-    pfunc_impl(input, proc_input, names.as_ref(), f).unwrap()
+    pfunc_impl(stream, proc_input, names.as_ref(), f).unwrap()
 }
 
 /// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
