@@ -283,18 +283,36 @@ pub fn __test() {
                     unreachable!();
                 }
             }
-            assert!(inner().into_iter().next().is_some());
-        }
-
-        fn err_macro_test1() {
-            fn inner() -> TokenStream {
-                err!("...", Span::call_site());
+            fn inner1() -> TokenStream {
+                let x = 2;
+                err!(@("... {x}"));
                 #[allow(unreachable_code)]
                 {
                     unreachable!();
                 }
             }
             assert!(inner().into_iter().next().is_some());
+            assert!(inner1().into_iter().next().is_some());
+        }
+
+        fn err_macro_test1() {
+            fn inner() -> Result<(), TokenStream> {
+                rerr!("...", Span::call_site());
+                #[allow(unreachable_code)]
+                {
+                    unreachable!();
+                }
+            }
+            fn inner1() -> Result<(), TokenStream> {
+                let x = 2;
+                rerr!(@("... {x}"));
+                #[allow(unreachable_code)]
+                {
+                    unreachable!();
+                }
+            }
+            assert!(inner().is_err());
+            assert!(inner1().is_err());
         }
 
         fn walk_test() {

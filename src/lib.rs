@@ -155,6 +155,9 @@ macro_rules! err {
     ($msg:expr , $span:expr $(,)?) => {
         return $crate::err($msg, $span)
     };
+    (@($($f:tt)*) $($rest:tt)*) => {
+        $crate::err!(&::std::format!($($f)*) $($rest)*)
+    };
 }
 
 /// [`return rerr(msg [, span])`](rerr())
@@ -163,6 +166,9 @@ macro_rules! rerr {
     ($msg:expr $(,)?) => { $crate::rerr!($msg, ::proc_macro::Span::call_site()) };
     ($msg:expr , $span:expr $(,)?) => {
         return $crate::rerr($msg, $span)
+    };
+    (@($($f:tt)*) $($rest:tt)*) => {
+        $crate::rerr!(&::std::format!($($f)*) $($rest)*)
     };
 }
 
