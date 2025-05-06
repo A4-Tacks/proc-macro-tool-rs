@@ -123,8 +123,8 @@ pub fn puncts_spanned(puncts: impl AsRef<[u8]>, span: Span) -> TokenStream {
 /// [`return err(msg [, span])`](err())
 #[macro_export]
 macro_rules! err {
-    ($msg:expr $(,)?) => { $crate::err!($msg, $crate::Span::call_site()) };
-    ($msg:expr , $($span:expr)? $(,)?) => {
+    ($msg:expr $(,)?) => { $crate::err!($msg, ::proc_macro::Span::call_site()) };
+    ($msg:expr , $span:expr $(,)?) => {
         return $crate::err($msg, $span)
     };
 }
@@ -132,8 +132,8 @@ macro_rules! err {
 /// [`return rerr(msg [, span])`](rerr())
 #[macro_export]
 macro_rules! rerr {
-    ($msg:expr $(,)?) => { $crate::rerr!($msg, $crate::Span::call_site()) };
-    ($msg:expr , $($span:expr)? $(,)?) => {
+    ($msg:expr $(,)?) => { $crate::rerr!($msg, ::proc_macro::Span::call_site()) };
+    ($msg:expr , $span:expr $(,)?) => {
         return $crate::rerr($msg, $span)
     };
 }

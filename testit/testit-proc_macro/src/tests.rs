@@ -274,5 +274,27 @@ pub fn __test() {
             assert_eq!(Some('*'), iter.next().unwrap().as_punct_char());
             assert!(iter.next().is_none());
         }
+
+        fn err_macro_test() {
+            fn inner() -> TokenStream {
+                err!("...");
+                #[allow(unreachable_code)]
+                {
+                    unreachable!();
+                }
+            }
+            assert!(inner().into_iter().next().is_some());
+        }
+
+        fn err_macro_test1() {
+            fn inner() -> TokenStream {
+                err!("...", Span::call_site());
+                #[allow(unreachable_code)]
+                {
+                    unreachable!();
+                }
+            }
+            assert!(inner().into_iter().next().is_some());
+        }
     }
 }
