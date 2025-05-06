@@ -1,0 +1,10 @@
+[package]
+name = "testit-proc_macro"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro-tool = { path = "../.." }

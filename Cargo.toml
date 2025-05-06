@@ -1,0 +1,21 @@
+[package]
+name = "proc-macro-tool"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
+keywords = ["proc-macro", "macros"]
+categories = ["no-std"]
+description = "Some common simple tool for proc-macro impl"
+
+license = "MIT"
+repository = "https://github.com/A4-Tacks/proc-macro-tool-rs"
+readme = "README.md"
+
+[workspace]
+members = [
+    "testit",
+    "testit/testit-proc_macro",
+]
+
+[dependencies]
