@@ -158,31 +158,6 @@ pub trait TokenStreamExt
 
     fn grouped(self, delimiter: Delimiter) -> Group;
 
-    fn walk<F>(self, mut f: F) -> Self
-    where F: FnMut(TokenTree) -> TokenTree
-    {
-        fn walk_impl<T, F>(this: T, f: &mut F) -> T
-        where T: TokenStreamExt,
-              F: FnMut(TokenTree) -> TokenTree
-        {
-            this.into_iter()
-                .map(|tt| {
-                    let tt = match tt {
-                        TokenTree::Group(g) => {
-                            walk_impl(g.stream(), &mut *f)
-                                .grouped(g.delimiter())
-                                .set_spaned(g.span())
-                                .into()
-                        },
-                        _ => tt,
-                    };
-                    f(tt)
-                })
-                .collect()
-        }
-        walk_impl(self, &mut f)
-    }
-
     /// Split [`TokenStream`] to `predicate` false and true
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
@@ -239,6 +214,7 @@ pub trait WalkExt
         walk_impl(self, &mut f)
     }
 }
+impl<I: IntoIterator<Item = TokenTree> + FromIterator<TokenTree>> WalkExt for I { }
 
 pub trait TokenTreeExt: Sized {
     fn as_ident(&self) -> Option<&Ident>;
