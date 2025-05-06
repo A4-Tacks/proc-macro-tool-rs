@@ -29,8 +29,12 @@ pub trait SetSpan: Sized {
     /// Call [`TokenTree::span`]
     fn span(&self) -> Span;
 
-    fn span_zip(self) -> (Span, Self) {
-        (self.span(), self)
+    /// For [`Group`], it will return ([`span_open`], [`span_close`])
+    ///
+    /// [`span_open`]: Group::span_open
+    /// [`span_close`]: Group::span_close
+    fn span_region(&self) -> (Span, Span) {
+        (self.span(), self.span())
     }
 
     fn set_spaned(mut self, span: Span) -> Self {
@@ -54,8 +58,21 @@ macro_rules! impl_set_span {
 impl_set_span!(TokenTree);
 impl_set_span!(Ident);
 impl_set_span!(Punct);
-impl_set_span!(Group);
 impl_set_span!(Literal);
+
+impl SetSpan for Group {
+    fn span(&self) -> Span {
+        self.span()
+    }
+
+    fn set_span(&mut self, span: Span) {
+        self.set_span(span);
+    }
+
+    fn span_region(&self) -> (Span, Span) {
+        (self.span_open(), self.span_close())
+    }
+}
 
 /// `<TokenStream as FromIterator<TokenTree>>::from_iter`
 #[must_use]
