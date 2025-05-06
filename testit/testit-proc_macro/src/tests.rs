@@ -1,4 +1,4 @@
-use std::thread::panicking;
+use std::{str::FromStr, thread::panicking};
 
 use proc_macro::{*, Spacing::*};
 use proc_macro_tool::*;
@@ -295,6 +295,19 @@ pub fn __test() {
                 }
             }
             assert!(inner().into_iter().next().is_some());
+        }
+
+        fn walk_test() {
+            let input = TokenStream::from_str("(1+2)*3").unwrap();
+            let mut acc = vec![];
+            input.walk(|x| { acc.push(x.clone()); x });
+            assert_eq!(acc.len(), 6);
+            assert!(acc[0].is_literal());
+            assert!(acc[1].is_punct());
+            assert!(acc[2].is_literal());
+            assert!(acc[3].is_group());
+            assert!(acc[4].is_punct());
+            assert!(acc[5].is_literal());
         }
     }
 }
