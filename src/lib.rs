@@ -37,6 +37,12 @@ pub trait SetSpan: Sized {
         (self.span(), self.span())
     }
 
+    /// `dst = self.span()`
+    fn span_as(self, dst: &mut Span) -> Self {
+        *dst = self.span();
+        self
+    }
+
     fn set_spaned(mut self, span: Span) -> Self {
         self.set_span(span);
         self
@@ -71,6 +77,19 @@ impl SetSpan for Group {
 
     fn span_region(&self) -> (Span, Span) {
         (self.span_open(), self.span_close())
+    }
+}
+impl<T: SetSpan> SetSpan for &mut T {
+    fn span(&self) -> Span {
+        (**self).span()
+    }
+
+    fn set_span(&mut self, span: Span) {
+        (*self).set_span(span);
+    }
+
+    fn span_region(&self) -> (Span, Span) {
+        (**self).span_region()
     }
 }
 
