@@ -156,10 +156,6 @@ pub trait TokenStreamExt
         self
     }
 
-    fn parse_iter(self) -> ParseIter<Self::IntoIter> {
-        ParseIter { iter: self.into_iter(), buf: VecDeque::new() }
-    }
-
     fn grouped(self, delimiter: Delimiter) -> Group;
 
     fn walk<F>(self, mut f: F) -> Self
@@ -209,6 +205,39 @@ impl TokenStreamExt for TokenStream {
         Some((iter.split_puncts(puncts)?, iter))
     }
 
+}
+
+pub trait WalkExt
+    : IntoIterator<Item = TokenTree>
+    + FromIterator<TokenTree>
+{
+    /// Remake each subtree
+    ///
+    /// `"(1+2)*3"` -> call `f` on `1`, `+`, `2`, `(1+2)`, `*`, `3`
+    fn walk<F>(self, mut f: F) -> Self
+    where F: FnMut(TokenTree) -> TokenTree
+    {
+        fn walk_impl<I, F>(this: I, f: &mut F) -> I
+        where I: IntoIterator<Item = TokenTree> + FromIterator<TokenTree>,
+              F: FnMut(TokenTree) -> TokenTree
+        {
+            this.into_iter()
+                .map(|tt| {
+                    let tt = match tt {
+                        TokenTree::Group(g) => {
+                            walk_impl(g.stream(), &mut *f)
+                                .grouped(g.delimiter())
+                                .set_spaned(g.span())
+                                .into()
+                        },
+                        _ => tt,
+                    };
+                    f(tt)
+                })
+                .collect()
+        }
+        walk_impl(self, &mut f)
+    }
 }
 
 pub trait TokenTreeExt: Sized {
@@ -427,12 +456,12 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         }
     }
 }
-pub trait ParseIterExt: Iterator<Item = TokenTree> + Sized {
-    fn parse_iter(self) -> ParseIter<Self> {
-        ParseIter { iter: self, buf: VecDeque::new() }
+pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
+    fn parse_iter(self) -> ParseIter<Self::IntoIter> {
+        ParseIter { iter: self.into_iter(), buf: VecDeque::new() }
     }
 }
-impl<I: Iterator<Item = TokenTree>> ParseIterExt for I { }
+impl<I: IntoIterator<Item = TokenTree>> ParseIterExt for I { }
 
 impl<I: Iterator<Item = TokenTree>> Iterator for ParseIter<I> {
     type Item = TokenTree;
