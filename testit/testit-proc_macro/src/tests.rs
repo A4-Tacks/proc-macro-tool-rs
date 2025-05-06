@@ -327,5 +327,22 @@ pub fn __test() {
             assert!(acc[4].is_punct());
             assert!(acc[5].is_literal());
         }
+
+        fn take_test() {
+            let input = TokenStream::from_str("1+2").unwrap();
+            let stream = TokenStream::new()
+                .push(Literal::i32_unsuffixed(1).into())
+                .push(Punct::new('+', Joint).into())
+                .push(Literal::i32_unsuffixed(1).into())
+                .take();
+            let [input, stream] = [
+                input.into_iter().collect(),
+                stream.into_iter().collect(),
+            ] as [Vec<_>; 2];
+            assert_eq!(input.len(), stream.len());
+            assert!(input[0].is_literal() && stream[0].is_literal());
+            assert!(input[1].is_punct() && stream[1].is_punct());
+            assert!(input[2].is_literal() && stream[2].is_literal());
+        }
     }
 }

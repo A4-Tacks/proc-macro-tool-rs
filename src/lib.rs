@@ -17,7 +17,7 @@ pub use span::*;
 pub use parse_iter::*;
 pub use func_utils::*;
 
-use std::iter::once;
+use std::{iter::once, mem::take};
 
 use proc_macro::{
     Delimiter, Group, Ident, Literal, Punct, Spacing::*, TokenStream,
@@ -25,6 +25,8 @@ use proc_macro::{
 };
 
 /// [`return err(msg [, span])`](err())
+///
+/// `err!(@(...))` like `err!(&format!(...))`
 #[macro_export]
 macro_rules! err {
     ($msg:expr $(,)?) => { $crate::err!($msg, ::proc_macro::Span::call_site()) };
@@ -37,6 +39,8 @@ macro_rules! err {
 }
 
 /// [`return rerr(msg [, span])`](rerr())
+///
+/// `err!(@(...))` like `err!(&format!(...))`
 #[macro_export]
 macro_rules! rerr {
     ($msg:expr $(,)?) => { $crate::rerr!($msg, ::proc_macro::Span::call_site()) };
@@ -53,7 +57,6 @@ pub trait TokenStreamExt
     + Extend<TokenTree>
     + Extend<TokenStream>
     + IntoIterator<Item = TokenTree>
-    + FromIterator<TokenTree>
     + Sized
 {
     fn push(&mut self, tt: TokenTree) -> &mut Self {
@@ -64,6 +67,10 @@ pub trait TokenStreamExt
     fn add(&mut self, stream: TokenStream) -> &mut Self {
         self.extend(once(stream));
         self
+    }
+
+    fn take(&mut self) -> Self {
+        take(self)
     }
 
     fn grouped(self, delimiter: Delimiter) -> Group;
@@ -98,7 +105,7 @@ pub trait WalkExt
 {
     /// Remake each subtree
     ///
-    /// `"(1+2)*3"` -> call `f` on `1`, `+`, `2`, `(1+2)`, `*`, `3`
+    /// `"(1+2)*3"` -> call `f` on `1`, `+`, `2`, `(f(1) f(+) f(2))`, `*`, `3`
     #[must_use]
     fn walk<F>(self, mut f: F) -> Self
     where F: FnMut(TokenTree) -> TokenTree
@@ -128,14 +135,30 @@ pub trait WalkExt
 impl<I: IntoIterator<Item = TokenTree> + FromIterator<TokenTree>> WalkExt for I { }
 
 pub trait TokenTreeExt: Sized {
-    fn as_ident(&self) -> Option<&Ident>;
-    fn as_punct(&self) -> Option<&Punct>;
-    fn as_group(&self) -> Option<&Group>;
-    fn as_literal(&self) -> Option<&Literal>;
-    fn into_ident(self) -> Result<Ident, Self>;
-    fn into_punct(self) -> Result<Punct, Self>;
-    fn into_group(self) -> Result<Group, Self>;
-    fn into_literal(self) -> Result<Literal, Self>;
+    fn as_ident(&self) -> Option<&Ident>     { None }
+    fn as_punct(&self) -> Option<&Punct>     { None }
+    fn as_group(&self) -> Option<&Group>     { None }
+    fn as_literal(&self) -> Option<&Literal> { None }
+    fn into_ident(self) -> Result<Ident, Self>     { Err(self) }
+    fn into_punct(self) -> Result<Punct, Self>     { Err(self) }
+    fn into_group(self) -> Result<Group, Self>     { Err(self) }
+    fn into_literal(self) -> Result<Literal, Self> { Err(self) }
+
+    fn to_ident(&self) -> Result<&Ident, &Self> {
+        self.as_ident().ok_or(self)
+    }
+
+    fn to_punct(&self) -> Result<&Punct, &Self> {
+        self.as_punct().ok_or(self)
+    }
+
+    fn to_group(&self) -> Result<&Group, &Self> {
+        self.as_group().ok_or(self)
+    }
+
+    fn to_literal(&self) -> Result<&Literal, &Self> {
+        self.as_literal().ok_or(self)
+    }
 
     fn is_ident(&self) -> bool {
         self.as_ident().is_some()
@@ -249,20 +272,30 @@ impl TokenTreeExt for TokenTree {
         }
     }
 }
-
-pub trait GroupExt {
-    /// Group delimiter is not [`Delimiter::None`]
-    ///
-    /// Other return `false` when `self` is not [`Group`]
-    fn is_solid_group(&self) -> bool;
-
-    /// Group delimiter equal to `delimiter`
-    ///
-    /// Other return `false` when `self` is not [`Group`]
-    fn is_delimiter(&self, delimiter: Delimiter) -> bool;
-
+macro_rules! impl_token_tree_ext {
+    ($as:ident, $into:ident, $ty:ty) => {
+        impl TokenTreeExt for $ty {
+            fn $as(&self) -> Option<&$ty> {
+                Some(self)
+            }
+            fn $into(self) -> Result<$ty, Self> {
+                Ok(self)
+            }
+        }
+    };
 }
-impl GroupExt for Group {
+impl_token_tree_ext!(as_ident,   into_ident,   Ident);
+impl_token_tree_ext!(as_punct,   into_punct,   Punct);
+impl_token_tree_ext!(as_literal, into_literal, Literal);
+impl TokenTreeExt for Group {
+    fn as_group(&self) -> Option<&Group> {
+        Some(self)
+    }
+
+    fn into_group(self) -> Result<Group, Self> {
+        Ok(self)
+    }
+
     fn is_solid_group(&self) -> bool {
         self.delimiter() != Delimiter::None
     }
@@ -270,5 +303,4 @@ impl GroupExt for Group {
     fn is_delimiter(&self, delimiter: Delimiter) -> bool {
         self.delimiter() == delimiter
     }
-
 }

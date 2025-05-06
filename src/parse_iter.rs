@@ -9,6 +9,7 @@ pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
 }
 impl<I: IntoIterator<Item = TokenTree>> ParseIterExt for I { }
 
+/// Peek `n` iterator adapter
 #[derive(Debug, Clone)]
 pub struct ParseIter<I: Iterator<Item = TokenTree>> {
     iter: I,
