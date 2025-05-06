@@ -263,6 +263,13 @@ pub trait TokenTreeExt: Sized {
         self.as_group().is_some_and(|g| g.is_solid_group())
     }
 
+    /// Group delimiter equal to `delimiter`
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    fn is_delimiter(&self, delimiter: Delimiter) -> bool {
+        self.as_group().is_some_and(|g| g.is_delimiter(delimiter))
+    }
+
     /// Punct spacing is [`Joint`]
     ///
     /// Other return `false` when `self` is not [`Punct`]
@@ -334,12 +341,25 @@ impl TokenTreeExt for TokenTree {
 
 pub trait GroupExt {
     /// Group delimiter is not [`Delimiter::None`]
+    ///
+    /// Other return `false` when `self` is not [`Group`]
     fn is_solid_group(&self) -> bool;
+
+    /// Group delimiter equal to `delimiter`
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    fn is_delimiter(&self, delimiter: Delimiter) -> bool;
+
 }
 impl GroupExt for Group {
     fn is_solid_group(&self) -> bool {
         self.delimiter() != Delimiter::None
     }
+
+    fn is_delimiter(&self, delimiter: Delimiter) -> bool {
+        self.delimiter() == delimiter
+    }
+
 }
 
 #[derive(Debug, Clone)]
