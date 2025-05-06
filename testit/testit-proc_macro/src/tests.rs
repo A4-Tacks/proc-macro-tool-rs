@@ -110,7 +110,7 @@ pub fn __test() {
 
         fn split_test() {
             let puncts = puncts("-+*,/%!");
-            let (a, mut b) = puncts.split_puncts(",");
+            let (a, mut b) = puncts.split_puncts(",").unwrap();
             let a = &mut a.into_iter();
             let f = |tt: TokenTree| tt.as_punct_char().unwrap();
 
@@ -127,7 +127,7 @@ pub fn __test() {
 
         fn split_test1() {
             let puncts = puncts("-+*,.,+/%!");
-            let (a, mut b) = puncts.split_puncts(",+");
+            let (a, mut b) = puncts.split_puncts(",+").unwrap();
             let a = &mut a.into_iter();
             let f = |tt: TokenTree| tt.as_punct_char().unwrap();
 
@@ -142,6 +142,27 @@ pub fn __test() {
             assert_eq!(Some('%'), b.next().map(f));
             assert_eq!(Some('!'), b.next().map(f));
             assert_eq!(None,      b.next().map(f));
+        }
+
+        fn split_test2() {
+            let puncts = puncts("-+*,.,+");
+            let (a, mut b) = puncts.split_puncts(",+").unwrap();
+            let a = &mut a.into_iter();
+            let f = |tt: TokenTree| tt.as_punct_char().unwrap();
+
+            assert_eq!(Some('-'), a.next().map(f));
+            assert_eq!(Some('+'), a.next().map(f));
+            assert_eq!(Some('*'), a.next().map(f));
+            assert_eq!(Some(','), a.next().map(f));
+            assert_eq!(Some('.'), a.next().map(f));
+            assert_eq!(None,      a.next().map(f));
+
+            assert_eq!(None,      b.next().map(f));
+        }
+
+        fn split_test3() {
+            let puncts = puncts("-+*,.,");
+            assert!(puncts.split_puncts(",+").is_none());
         }
 
         fn peek_test1() {

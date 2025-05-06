@@ -162,19 +162,19 @@ pub trait TokenStreamExt
     /// Split [`TokenStream`] to `predicate` false and true
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
-    fn split_puncts(self, puncts: impl AsRef<[u8]>) -> (
+    fn split_puncts(self, puncts: impl AsRef<[u8]>) -> Option<(
         Self,
         ParseIter<Self::IntoIter>,
-    );
+    )>;
 }
 impl TokenStreamExt for TokenStream {
-    fn split_puncts(self, puncts: impl AsRef<[u8]>) -> (
+    fn split_puncts(self, puncts: impl AsRef<[u8]>) -> Option<(
         Self,
         ParseIter<Self::IntoIter>,
-    )
+    )>
     {
         let mut iter = self.parse_iter();
-        (iter.split_puncts(puncts), iter)
+        Some((iter.split_puncts(puncts)?, iter))
     }
 
 }
@@ -380,15 +380,19 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
     /// Split [`TokenStream`] to `predicate` false and true
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
-    pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> TokenStream {
+    pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
         let mut left = TokenStream::new();
         let puncts = puncts.as_ref();
 
-        while self.next_puncts(puncts).is_none() {
+        loop {
+            if self.next_puncts(puncts).is_some() {
+                break Some(left);
+            }
+            if self.peek().is_none() {
+                break None;
+            }
             left.push(self.next().unwrap());
         }
-
-        left
     }
 }
 pub trait ParseIterExt: Iterator<Item = TokenTree> + Sized {
