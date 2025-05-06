@@ -4,7 +4,7 @@ extern crate proc_macro;
 
 use std::{
     collections::VecDeque,
-    iter::{once, FusedIterator, Peekable},
+    iter::{once, FusedIterator},
 };
 
 use proc_macro::{
@@ -160,16 +160,19 @@ pub trait TokenStreamExt
     }
 
     /// Split [`TokenStream`] to `predicate` false and true
-    fn split_with<F>(self, mut predicate: F) -> (Self, Peekable<Self::IntoIter>)
-    where F: FnMut(&TokenTree) -> bool,
+    ///
+    /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
+    fn split_puncts(self, puncts: impl AsRef<[u8]>) -> (
+        Self,
+        ParseIter<Self::IntoIter>,
+    )
     {
         let mut left = Self::default();
+        let puncts = puncts.as_ref();
 
-        let mut iter = self.into_iter().peekable();
-        while let Some(tt) = iter
-            .next_if(|tt| ! predicate(tt))
-        {
-            left.push(tt);
+        let mut iter = self.parse_iter();
+        while iter.next_puncts(puncts).is_none() {
+            left.push(iter.next().unwrap());
         }
 
         (left, iter)
@@ -303,6 +306,7 @@ impl GroupExt for Group {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ParseIter<I: Iterator<Item = TokenTree>> {
     iter: I,
     buf: VecDeque<TokenTree>,

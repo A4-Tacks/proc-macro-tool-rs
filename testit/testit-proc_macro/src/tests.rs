@@ -8,7 +8,7 @@ struct Test(&'static str);
 impl Drop for Test {
     fn drop(&mut self) {
         if panicking() {
-            println!("{} failed", self.0)
+            println!(" {} failed", self.0)
         }
     }
 }
@@ -110,7 +110,7 @@ pub fn __test() {
 
         fn split_test() {
             let puncts = puncts("-+*,/%!");
-            let (a, mut b) = puncts.split_with(|p|p.is_punch(','));
+            let (a, mut b) = puncts.split_puncts(",");
             let a = &mut a.into_iter();
             let f = |tt: TokenTree| tt.as_punct_char().unwrap();
 
@@ -119,26 +119,29 @@ pub fn __test() {
             assert_eq!(Some('*'), a.next().map(f));
             assert_eq!(None,      a.next().map(f));
 
-            assert_eq!(Some(','), b.next().map(f));
             assert_eq!(Some('/'), b.next().map(f));
             assert_eq!(Some('%'), b.next().map(f));
             assert_eq!(Some('!'), b.next().map(f));
             assert_eq!(None,      b.next().map(f));
         }
 
-        fn peek_test() {
-            let puncts = puncts("+-*/");
-            let mut iter = puncts.parse_iter();
-            assert_eq!(Some('-'), iter.peek_i(1).unwrap().as_punct_char());
-            assert!(iter.peek_i(1).unwrap().is_joint());
-            assert_eq!(Some('+'), iter.peek_i(0).unwrap().as_punct_char());
-            assert!(iter.peek_i(0).unwrap().is_joint());
-            assert_eq!(Some('+'), iter.next().unwrap().as_punct_char());
-            assert_eq!(Some('-'), iter.next().unwrap().as_punct_char());
-            assert_eq!(Some('*'), iter.next().unwrap().as_punct_char());
-            assert!(iter.peek_i(0).unwrap().is_joint());
-            assert_eq!(Some('/'), iter.next().unwrap().as_punct_char());
-            assert!(iter.next().is_none());
+        fn split_test1() {
+            let puncts = puncts("-+*,.,+/%!");
+            let (a, mut b) = puncts.split_puncts(",+");
+            let a = &mut a.into_iter();
+            let f = |tt: TokenTree| tt.as_punct_char().unwrap();
+
+            assert_eq!(Some('-'), a.next().map(f));
+            assert_eq!(Some('+'), a.next().map(f));
+            assert_eq!(Some('*'), a.next().map(f));
+            assert_eq!(Some(','), a.next().map(f));
+            assert_eq!(Some('.'), a.next().map(f));
+            assert_eq!(None,      a.next().map(f));
+
+            assert_eq!(Some('/'), b.next().map(f));
+            assert_eq!(Some('%'), b.next().map(f));
+            assert_eq!(Some('!'), b.next().map(f));
+            assert_eq!(None,      b.next().map(f));
         }
 
         fn peek_test1() {
