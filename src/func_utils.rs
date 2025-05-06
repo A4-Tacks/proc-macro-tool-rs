@@ -1,0 +1,160 @@
+use proc_macro::{
+    Delimiter, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream,
+    TokenTree,
+};
+
+use crate::{
+    span_setter, ParseIterExt as _, SetSpan as _, TokenStreamExt as _,
+    TokenTreeExt as _,
+};
+
+/// `<TokenStream as FromIterator<TokenTree>>::from_iter`
+#[must_use]
+pub fn stream<I>(iter: I) -> TokenStream
+where I: IntoIterator<Item = TokenTree>,
+{
+    TokenStream::from_iter(iter)
+}
+
+/// `<TokenStream as FromIterator<TokenStream>>::from_iter`
+#[must_use]
+pub fn streams<I>(iter: I) -> TokenStream
+where I: IntoIterator<Item = TokenStream>,
+{
+    TokenStream::from_iter(iter)
+}
+
+fn pfunc_impl<F, R>(
+    stream: impl IntoIterator<Item = TokenTree>,
+    proc_input: bool,
+    names: &[&str],
+    f: &mut F,
+) -> Result<TokenStream, R>
+where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
+{
+    let mut iter = stream.into_iter().parse_iter();
+    let mut result = TokenStream::new();
+
+    while let Some(tt) = iter.next() {
+        match tt {
+            TokenTree::Punct(p)
+                if p.as_char() == '#'
+                && iter.peek_is(|i| i.as_ident()
+                    .is_some_and(|i| names.contains(&&*i.to_string())))
+                && iter.peek_i_is(1, |t| t.is_solid_group())
+                =>
+            {
+                let ident = iter.next().unwrap().into_ident().unwrap();
+                let mut group = iter.next().unwrap().into_group().unwrap();
+                if proc_input {
+                    let sub = pfunc_impl(
+                        group.stream(),
+                        proc_input,
+                        names,
+                        f,
+                    )?;
+                    group = sub
+                        .grouped(group.delimiter())
+                        .set_spaned(group.span());
+                }
+                result.add(f(ident, group)?);
+            },
+            TokenTree::Group(g) => {
+                let sub = pfunc_impl(g.stream(), proc_input, names, f)?;
+                result.push(sub
+                    .grouped(g.delimiter())
+                    .set_spaned(g.span())
+                    .into());
+            },
+            _ => _ = result.push(tt),
+        }
+    }
+
+    Ok(result)
+}
+
+/// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
+///
+/// Apply pfunc for `(...)` when `proc_input` is `true`
+#[allow(clippy::missing_panics_doc)]
+pub fn pfunc<'a>(
+    stream: impl IntoIterator<Item = TokenTree>,
+    proc_input: bool,
+    names: impl AsRef<[&'a str]>,
+    mut f: impl FnMut(Ident, Group) -> TokenStream,
+) -> TokenStream {
+    let f = &mut |i, g| {
+        Ok::<_, ()>(f(i, g))
+    };
+    pfunc_impl(stream, proc_input, names.as_ref(), f).unwrap()
+}
+
+/// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
+///
+/// Apply pfunc for `(...)` when `proc_input` is `true`
+pub fn try_pfunc<'a, R>(
+    stream: impl IntoIterator<Item = TokenTree>,
+    proc_input: bool,
+    names: impl AsRef<[&'a str]>,
+    mut f: impl FnMut(Ident, Group) -> Result<TokenStream, R>,
+) -> Result<TokenStream, R> {
+    pfunc_impl(stream, proc_input, names.as_ref(), &mut f)
+}
+
+/// Make `compile_error! {"..."}`
+#[must_use]
+pub fn err(msg: &str, span: Span) -> TokenStream {
+    let s = span_setter(span);
+    stream([
+        s(Punct::new(':', Joint).into()),
+        s(Punct::new(':', Joint).into()),
+        s(Ident::new("core", span).into()),
+        s(Punct::new(':', Joint).into()),
+        s(Punct::new(':', Joint).into()),
+        s(Ident::new("compile_error", span).into()),
+        s(Punct::new('!', Joint).into()),
+        s(Group::new(Delimiter::Brace, stream([
+            s(Literal::string(msg).into()),
+        ])).into()),
+    ])
+}
+
+/// Like [`err()`], but use [`Result`]
+///
+/// # Errors
+/// - always return [`Err`]
+pub fn rerr<T>(msg: &str, span: Span) -> Result<T, TokenStream> {
+    Err(err(msg, span))
+}
+
+/// Make puncts, `spacing` is last punct spacing
+///
+/// - `"+-"` like `[Joint('+'), Joint('-')]`
+/// - `"+- "` like `[Joint('+'), Alone('-')]`
+/// - `"+ -"` like `[Alone('+'), Joint('-')]`
+pub fn puncts(puncts: impl AsRef<[u8]>) -> TokenStream {
+    puncts_spanned(puncts, Span::call_site())
+}
+
+/// Make puncts, `spacing` is last punct spacing
+///
+/// Like [`puncts`], but `.set_span(span)`
+pub fn puncts_spanned(puncts: impl AsRef<[u8]>, span: Span) -> TokenStream {
+    let puncts = puncts.as_ref().trim_ascii_start();
+    let iter = &mut puncts.iter().copied().peekable();
+    let mut result = TokenStream::new();
+
+    while let Some(ch) = iter.next() {
+        debug_assert!(! ch.is_ascii_whitespace());
+        let mut s = None;
+        while iter.next_if(u8::is_ascii_whitespace).is_some() {
+            s = Some(Alone)
+        }
+        let spacing = s.or(iter.peek().map(|_| Joint))
+            .unwrap_or(Joint);
+        let p = Punct::new(ch.into(), spacing);
+        result.push(p.set_spaned(span).into());
+    }
+
+    result
+}

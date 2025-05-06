@@ -1,171 +1,28 @@
 #![doc = include_str!("../README.md")]
+#![warn(clippy::unused_trait_names, clippy::pedantic)]
+#![allow(
+    clippy::redundant_closure_for_method_calls,
+    clippy::enum_glob_use,
+    clippy::missing_errors_doc,
+    clippy::semicolon_if_nothing_returned,
+)]
 
 extern crate proc_macro;
 
-use std::{
-    collections::VecDeque,
-    iter::{once, FusedIterator},
-};
+mod span;
+mod parse_iter;
+mod func_utils;
+
+pub use span::*;
+pub use parse_iter::*;
+pub use func_utils::*;
+
+use std::iter::once;
 
 use proc_macro::{
-    Delimiter, Group, Ident, Literal, Punct,
-    Spacing::*,
-    Span, TokenStream, TokenTree,
+    Delimiter, Group, Ident, Literal, Punct, Spacing::*, TokenStream,
+    TokenTree,
 };
-
-/// Generate a function, set input `TokenTree` span
-pub fn span_setter<T>(span: Span) -> impl Fn(T) -> T
-where T: SetSpan,
-{
-    move |tt| {
-        tt.set_spaned(span)
-    }
-}
-
-pub trait SetSpan: Sized {
-    /// Call [`TokenTree::set_span`]
-    fn set_span(&mut self, span: Span);
-
-    /// Call [`TokenTree::span`]
-    fn span(&self) -> Span;
-
-    /// For [`Group`], it will return ([`span_open`], [`span_close`])
-    ///
-    /// [`span_open`]: Group::span_open
-    /// [`span_close`]: Group::span_close
-    fn span_region(&self) -> (Span, Span) {
-        (self.span(), self.span())
-    }
-
-    /// `dst = self.span()`
-    fn span_as(self, dst: &mut Span) -> Self {
-        *dst = self.span();
-        self
-    }
-
-    fn set_spaned(mut self, span: Span) -> Self {
-        self.set_span(span);
-        self
-    }
-}
-macro_rules! impl_set_span {
-    ($ty:ty) => {
-        impl SetSpan for $ty {
-            fn span(&self) -> Span {
-                self.span()
-            }
-
-            fn set_span(&mut self, span: Span) {
-                self.set_span(span);
-            }
-        }
-    };
-}
-impl_set_span!(TokenTree);
-impl_set_span!(Ident);
-impl_set_span!(Punct);
-impl_set_span!(Literal);
-
-impl SetSpan for Group {
-    fn span(&self) -> Span {
-        self.span()
-    }
-
-    fn set_span(&mut self, span: Span) {
-        self.set_span(span);
-    }
-
-    fn span_region(&self) -> (Span, Span) {
-        (self.span_open(), self.span_close())
-    }
-}
-impl<T: SetSpan> SetSpan for &mut T {
-    fn span(&self) -> Span {
-        (**self).span()
-    }
-
-    fn set_span(&mut self, span: Span) {
-        (*self).set_span(span);
-    }
-
-    fn span_region(&self) -> (Span, Span) {
-        (**self).span_region()
-    }
-}
-
-/// `<TokenStream as FromIterator<TokenTree>>::from_iter`
-#[must_use]
-pub fn stream<I>(iter: I) -> TokenStream
-where I: IntoIterator<Item = TokenTree>,
-{
-    TokenStream::from_iter(iter)
-}
-
-/// `<TokenStream as FromIterator<TokenStream>>::from_iter`
-#[must_use]
-pub fn streams<I>(iter: I) -> TokenStream
-where I: IntoIterator<Item = TokenStream>,
-{
-    TokenStream::from_iter(iter)
-}
-
-/// Make `compile_error! {"..."}`
-#[must_use]
-pub fn err(msg: &str, span: Span) -> TokenStream {
-    let s = span_setter(span);
-    stream([
-        s(Punct::new(':', Joint).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Ident::new("core", span).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Ident::new("compile_error", span).into()),
-        s(Punct::new('!', Joint).into()),
-        s(Group::new(Delimiter::Brace, stream([
-            s(Literal::string(msg).into()),
-        ])).into()),
-    ])
-}
-
-/// Like [`err()`], but use [`Result`]
-///
-/// # Errors
-/// - always return [`Err`]
-pub fn rerr<T>(msg: &str, span: Span) -> Result<T, TokenStream> {
-    Err(err(msg, span))
-}
-
-/// Make puncts, `spacing` is last punct spacing
-///
-/// - `"+-"` like `[Joint('+'), Joint('-')]`
-/// - `"+- "` like `[Joint('+'), Alone('-')]`
-/// - `"+ -"` like `[Alone('+'), Joint('-')]`
-pub fn puncts(puncts: impl AsRef<[u8]>) -> TokenStream {
-    puncts_spanned(puncts, Span::call_site())
-}
-
-/// Make puncts, `spacing` is last punct spacing
-///
-/// Like [`puncts`], but `.set_span(span)`
-pub fn puncts_spanned(puncts: impl AsRef<[u8]>, span: Span) -> TokenStream {
-    let puncts = puncts.as_ref().trim_ascii_start();
-    let iter = &mut puncts.iter().copied().peekable();
-    let mut result = TokenStream::new();
-
-    while let Some(ch) = iter.next() {
-        debug_assert!(! ch.is_ascii_whitespace());
-        let mut s = None;
-        while iter.next_if(u8::is_ascii_whitespace).is_some() {
-            s = Some(Alone)
-        }
-        let spacing = s.or(iter.peek().map(|_| Joint))
-            .unwrap_or(Joint);
-        let p = Punct::new(ch.into(), spacing);
-        result.push(p.set_spaned(span).into());
-    }
-
-    result
-}
 
 /// [`return err(msg [, span])`](err())
 #[macro_export]
@@ -242,6 +99,7 @@ pub trait WalkExt
     /// Remake each subtree
     ///
     /// `"(1+2)*3"` -> call `f` on `1`, `+`, `2`, `(1+2)`, `*`, `3`
+    #[must_use]
     fn walk<F>(self, mut f: F) -> Self
     where F: FnMut(TokenTree) -> TokenTree
     {
@@ -413,221 +271,4 @@ impl GroupExt for Group {
         self.delimiter() == delimiter
     }
 
-}
-
-#[derive(Debug, Clone)]
-pub struct ParseIter<I: Iterator<Item = TokenTree>> {
-    iter: I,
-    buf: VecDeque<TokenTree>,
-}
-
-impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
-    pub fn peek(&mut self) -> Option<&TokenTree> {
-        self.peek_i(0)
-    }
-
-    pub fn next_if<F>(&mut self, f: F) -> Option<TokenTree>
-    where F: FnOnce(&TokenTree) -> bool,
-    {
-        let peek = self.peek()?;
-
-        if f(peek) {
-            self.next()
-        } else {
-            None
-        }
-    }
-
-    pub fn peek_i(&mut self, i: usize) -> Option<&TokenTree> {
-        for _ in self.buf.len()..=i {
-            self.buf.push_back(self.iter.next()?);
-        }
-        Some(&self.buf[i])
-    }
-
-    pub fn peek_is<F>(&mut self, f: F) -> bool
-    where F: FnOnce(&TokenTree) -> bool,
-    {
-        self.peek().is_some_and(f)
-    }
-
-    pub fn peek_i_is<F>(&mut self, i: usize, f: F) -> bool
-    where F: FnOnce(&TokenTree) -> bool,
-    {
-        self.peek_i(i).is_some_and(f)
-    }
-
-    /// Peek jointed puncts
-    pub fn peek_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<
-        impl Iterator<Item = &TokenTree>
-    > {
-        let mut prev = None;
-
-        for (i, ch) in puncts.as_ref().iter()
-            .copied().map(char::from).enumerate()
-        {
-            if let Some(prev) = prev {
-                if prev == Alone { return None }
-            }
-
-            let tt = self.peek_i(i)?;
-            let TokenTree::Punct(p) = tt else { return None };
-            if p.as_char() != ch { return None }
-
-            prev = Some(p.spacing());
-        }
-        Some(self.buf.iter())
-    }
-
-    /// Next jointed puncts
-    pub fn next_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<
-        impl Iterator<Item = TokenTree> + '_
-    > {
-        let _ = self.peek_puncts(puncts.as_ref())?;
-        Some(self.buf.drain(..puncts.as_ref().len()))
-    }
-
-    /// Split [`TokenStream`] to `predicate` false and true
-    ///
-    /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
-    pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
-        let mut left = TokenStream::new();
-        let puncts = puncts.as_ref();
-
-        loop {
-            if self.next_puncts(puncts).is_some() {
-                break Some(left);
-            }
-            if self.peek().is_none() {
-                break None;
-            }
-            left.push(self.next().unwrap());
-        }
-    }
-}
-pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
-    fn parse_iter(self) -> ParseIter<Self::IntoIter> {
-        ParseIter { iter: self.into_iter(), buf: VecDeque::new() }
-    }
-}
-impl<I: IntoIterator<Item = TokenTree>> ParseIterExt for I { }
-
-impl<I: Iterator<Item = TokenTree>> Iterator for ParseIter<I> {
-    type Item = TokenTree;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.buf.pop_front()
-            .or_else(|| self.iter.next())
-    }
-
-    fn count(self) -> usize
-    where Self: Sized,
-    {
-        self.buf.len() + self.iter.count()
-    }
-
-    fn fold<B, F>(self, init: B, f: F) -> B
-    where Self: Sized,
-          F: FnMut(B, Self::Item) -> B,
-    {
-        self.buf.into_iter().chain(self.iter).fold(init, f)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (lo, hi) = self.iter.size_hint();
-        let lo = lo.saturating_add(self.buf.len());
-        let hi = hi.and_then(|hi| hi.checked_add(self.buf.len()));
-        (lo, hi)
-    }
-}
-impl<I: DoubleEndedIterator<Item = TokenTree>> DoubleEndedIterator for ParseIter<I> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.iter.next_back()
-            .or_else(|| self.buf.pop_back())
-    }
-
-    fn rfold<B, F>(self, init: B, f: F) -> B
-    where Self: Sized,
-          F: FnMut(B, Self::Item) -> B,
-    {
-        self.buf.into_iter().chain(self.iter).rfold(init, f)
-    }
-}
-impl<I: ExactSizeIterator<Item = TokenTree>> ExactSizeIterator for ParseIter<I> { }
-impl<I: FusedIterator<Item = TokenTree>> FusedIterator for ParseIter<I> { }
-
-fn pfunc_impl<F, R>(
-    stream: impl IntoIterator<Item = TokenTree>,
-    proc_input: bool,
-    names: &[&str],
-    f: &mut F,
-) -> Result<TokenStream, R>
-where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
-{
-    let mut iter = stream.into_iter().parse_iter();
-    let mut result = TokenStream::new();
-
-    while let Some(tt) = iter.next() {
-        match tt {
-            TokenTree::Punct(p)
-                if p.as_char() == '#'
-                && iter.peek_is(|i| i.as_ident()
-                    .is_some_and(|i| names.contains(&&*i.to_string())))
-                && iter.peek_i_is(1, |t| t.is_solid_group())
-                =>
-            {
-                let ident = iter.next().unwrap().into_ident().unwrap();
-                let mut group = iter.next().unwrap().into_group().unwrap();
-                if proc_input {
-                    let sub = pfunc_impl(
-                        group.stream(),
-                        proc_input,
-                        names,
-                        f,
-                    )?;
-                    group = sub
-                        .grouped(group.delimiter())
-                        .set_spaned(group.span());
-                }
-                result.add(f(ident, group)?);
-            },
-            TokenTree::Group(g) => {
-                let sub = pfunc_impl(g.stream(), proc_input, names, f)?;
-                result.push(sub
-                    .grouped(g.delimiter())
-                    .set_spaned(g.span())
-                    .into());
-            },
-            _ => _ = result.push(tt),
-        }
-    }
-
-    Ok(result)
-}
-
-/// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
-///
-/// Apply pfunc for `(...)` when `proc_input` is `true`
-pub fn pfunc<'a>(
-    stream: impl IntoIterator<Item = TokenTree>,
-    proc_input: bool,
-    names: impl AsRef<[&'a str]>,
-    mut f: impl FnMut(Ident, Group) -> TokenStream,
-) -> TokenStream {
-    let f = &mut |i, g| {
-        Ok::<_, ()>(f(i, g))
-    };
-    pfunc_impl(stream, proc_input, names.as_ref(), f).unwrap()
-}
-
-/// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
-///
-/// Apply pfunc for `(...)` when `proc_input` is `true`
-pub fn try_pfunc<'a, R>(
-    stream: impl IntoIterator<Item = TokenTree>,
-    proc_input: bool,
-    names: impl AsRef<[&'a str]>,
-    mut f: impl FnMut(Ident, Group) -> Result<TokenStream, R>,
-) -> Result<TokenStream, R> {
-    pfunc_impl(stream, proc_input, names.as_ref(), &mut f)
 }
