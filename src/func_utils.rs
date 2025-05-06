@@ -4,8 +4,8 @@ use proc_macro::{
 };
 
 use crate::{
-    span_setter, ParseIterExt as _, SetSpan as _, TokenStreamExt as _,
-    TokenTreeExt as _,
+    span_setter, GetSpan, ParseIterExt as _, SetSpan as _,
+    TokenStreamExt as _, TokenTreeExt as _,
 };
 
 /// `<TokenStream as FromIterator<TokenTree>>::from_iter`
@@ -103,15 +103,15 @@ pub fn try_pfunc<'a, R>(
 
 /// Make `compile_error! {"..."}`
 #[must_use]
-pub fn err(msg: &str, span: Span) -> TokenStream {
-    let s = span_setter(span);
+pub fn err(msg: &str, span: impl GetSpan) -> TokenStream {
+    let s = span_setter(span.span());
     stream([
         s(Punct::new(':', Joint).into()),
         s(Punct::new(':', Joint).into()),
-        s(Ident::new("core", span).into()),
+        s(Ident::new("core", span.span()).into()),
         s(Punct::new(':', Joint).into()),
         s(Punct::new(':', Joint).into()),
-        s(Ident::new("compile_error", span).into()),
+        s(Ident::new("compile_error", span.span()).into()),
         s(Punct::new('!', Joint).into()),
         s(Group::new(Delimiter::Brace, stream([
             s(Literal::string(msg).into()),
@@ -123,7 +123,7 @@ pub fn err(msg: &str, span: Span) -> TokenStream {
 ///
 /// # Errors
 /// - always return [`Err`]
-pub fn rerr<T>(msg: &str, span: Span) -> Result<T, TokenStream> {
+pub fn rerr<T>(msg: &str, span: impl GetSpan) -> Result<T, TokenStream> {
     Err(err(msg, span))
 }
 

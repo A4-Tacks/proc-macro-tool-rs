@@ -29,7 +29,7 @@ use proc_macro::{
 macro_rules! err {
     ($msg:expr $(,)?) => { $crate::err!($msg, ::proc_macro::Span::call_site()) };
     ($msg:expr , $span:expr $(,)?) => {
-        return $crate::err($msg, $span)
+        return $crate::err($msg, &$span)
     };
     (@($($f:tt)*) $($rest:tt)*) => {
         $crate::err!(&::std::format!($($f)*) $($rest)*)
@@ -41,7 +41,7 @@ macro_rules! err {
 macro_rules! rerr {
     ($msg:expr $(,)?) => { $crate::rerr!($msg, ::proc_macro::Span::call_site()) };
     ($msg:expr , $span:expr $(,)?) => {
-        return $crate::rerr($msg, $span)
+        return $crate::rerr($msg, &$span)
     };
     (@($($f:tt)*) $($rest:tt)*) => {
         $crate::rerr!(&::std::format!($($f)*) $($rest)*)
