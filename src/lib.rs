@@ -484,7 +484,7 @@ impl<I: ExactSizeIterator<Item = TokenTree>> ExactSizeIterator for ParseIter<I> 
 impl<I: FusedIterator<Item = TokenTree>> FusedIterator for ParseIter<I> { }
 
 fn pfunc_impl<F, R>(
-    stream: TokenStream,
+    stream: impl IntoIterator<Item = TokenTree>,
     proc_input: bool,
     names: &[&str],
     f: &mut F,
@@ -536,7 +536,7 @@ where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
 ///
 /// Apply pfunc for `(...)` when `proc_input` is `true`
 pub fn pfunc<'a>(
-    stream: TokenStream,
+    stream: impl IntoIterator<Item = TokenTree>,
     proc_input: bool,
     names: impl AsRef<[&'a str]>,
     mut f: impl FnMut(Ident, Group) -> TokenStream,
@@ -551,10 +551,10 @@ pub fn pfunc<'a>(
 ///
 /// Apply pfunc for `(...)` when `proc_input` is `true`
 pub fn try_pfunc<'a, R>(
-    input: TokenStream,
+    stream: impl IntoIterator<Item = TokenTree>,
     proc_input: bool,
     names: impl AsRef<[&'a str]>,
     mut f: impl FnMut(Ident, Group) -> Result<TokenStream, R>,
 ) -> Result<TokenStream, R> {
-    pfunc_impl(input, proc_input, names.as_ref(), &mut f)
+    pfunc_impl(stream, proc_input, names.as_ref(), &mut f)
 }
