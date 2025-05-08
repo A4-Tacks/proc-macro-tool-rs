@@ -1,11 +1,11 @@
 [package]
 name = "proc-macro-tool"
-version = "0.8.3"
+version = "0.8.4"
 edition = "2021"
 
 authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
 keywords = ["proc-macro", "macros"]
-categories = ["no-std"]
+categories = ["rust-patterns"]
 description = "Some common simple tool for proc-macro impl"
 
 license = "MIT"
