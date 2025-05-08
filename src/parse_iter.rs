@@ -2,7 +2,9 @@ use crate::TokenStreamExt as _;
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
 use std::{collections::VecDeque, iter::FusedIterator};
 
+/// Create [`ParseIter`]
 pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
+    /// Create [`ParseIter`]
     fn parse_iter(self) -> ParseIter<Self::IntoIter> {
         ParseIter { iter: self.into_iter(), buf: VecDeque::new() }
     }

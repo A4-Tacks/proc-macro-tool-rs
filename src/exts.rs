@@ -15,21 +15,25 @@ pub trait TokenStreamExt
     + IntoIterator<Item = TokenTree>
     + Sized
 {
+    /// Extend a [`TokenTree`]
     fn push(&mut self, tt: TokenTree) -> &mut Self {
         self.extend(once(tt));
         self
     }
 
+    /// Extend a [`TokenStream`]
     fn add(&mut self, stream: TokenStream) -> &mut Self {
         self.extend(once(stream));
         self
     }
 
+    /// Call [`mem::take`](std::mem::take)
     #[must_use]
     fn take(&mut self) -> Self {
         take(self)
     }
 
+    /// Call [`Group::new`]
     fn grouped(self, delimiter: Delimiter) -> Group;
 
     fn grouped_paren(self) -> Group {
@@ -189,11 +193,13 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
     }
 
     /// [`Into`] [`TokenTree`], like [`TokenTree::from(self)`]
+    ///
+    /// [`TokenTree::from(self)`]: TokenTree::from
     fn tt(self) -> TokenTree {
         self.into()
     }
 
-    /// [`TokenStream::from_iter(self.tt())`]
+    /// [`TokenStream::from_iter(self.tt())`](TokenStream::from_iter)
     fn unit_stream(self) -> TokenStream {
         self.tt().into()
     }
@@ -288,15 +294,22 @@ impl TokenTreeExt for Group {
     }
 }
 
+/// Create unsuffixed [`Literal`]
 pub trait Unsuffixed {
     fn unsuffixed(self) -> Literal;
 }
+/// Create suffixed [`Literal`]
 pub trait Suffixed {
     fn suffixed(self) -> Literal;
 }
 macro_rules! impl_unsuffixes {
     ( $($ty:ty: $unsuffixed:ident $($suffixed:ident)?);+ $(;)? ) => {
         $(
+            #[doc = concat!(
+                "Call [`Literal::",
+                stringify!($unsuffixed),
+                "`]",
+            )]
             impl Unsuffixed for $ty {
                 fn unsuffixed(self) -> Literal {
                     Literal::$unsuffixed(self)
@@ -304,6 +317,11 @@ macro_rules! impl_unsuffixes {
             }
 
             $(
+                #[doc = concat!(
+                    "Call [`Literal::",
+                    stringify!($unsuffixed),
+                    "`]",
+                )]
                 impl Suffixed for $ty {
                     fn suffixed(self) -> Literal {
                         Literal::$suffixed(self)
