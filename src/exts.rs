@@ -192,6 +192,11 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
     fn tt(self) -> TokenTree {
         self.into()
     }
+
+    /// [`TokenStream::from_iter(self.tt())`]
+    fn unit_stream(self) -> TokenStream {
+        self.tt().into()
+    }
 }
 impl TokenTreeExt for TokenTree {
     fn as_ident(&self) -> Option<&Ident> {
