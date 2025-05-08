@@ -1,5 +1,7 @@
 Some common simple tool for proc-macro impl
 
+There are many methods available for chain calls
+
 What can do:
 
 - Quickly create processors in the style of `#foo(...)`
