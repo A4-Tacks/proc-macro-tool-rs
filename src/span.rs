@@ -1,5 +1,6 @@
 use proc_macro::{Group, Ident, Literal, Punct, Span, TokenTree};
 
+/// General implementations of [`TokenTree::span`]
 pub trait GetSpan: Sized {
     /// Call [`TokenTree::span`]
     #[must_use]
@@ -54,10 +55,12 @@ impl GetSpan for Span {
     }
 }
 
+/// General implementations of [`TokenTree::set_span`]
 pub trait SetSpan: GetSpan + Sized {
     /// Call [`TokenTree::set_span`]
     fn set_span(&mut self, span: Span);
 
+    /// Like `{let mut x = this; x.set_span(span); x}`
     #[must_use]
     fn set_spaned(mut self, span: Span) -> Self {
         self.set_span(span);

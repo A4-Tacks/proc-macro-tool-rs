@@ -8,7 +8,8 @@ use crate::{
     TokenTreeExt as _,
 };
 
-/// `<TokenStream as FromIterator<TokenTree>>::from_iter`
+/// Create [`TokenStream`] from
+/// [`IntoIterator<Item = TokenTree>`](IntoIterator)
 #[must_use]
 pub fn stream<I>(iter: I) -> TokenStream
 where I: IntoIterator<Item = TokenTree>,
@@ -16,7 +17,8 @@ where I: IntoIterator<Item = TokenTree>,
     TokenStream::from_iter(iter)
 }
 
-/// `<TokenStream as FromIterator<TokenStream>>::from_iter`
+/// Create [`TokenStream`] from
+/// [`IntoIterator<Item = TokenStream>`](IntoIterator)
 #[must_use]
 pub fn streams<I>(iter: I) -> TokenStream
 where I: IntoIterator<Item = TokenStream>,

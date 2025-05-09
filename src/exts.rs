@@ -78,6 +78,7 @@ impl TokenStreamExt for TokenStream {
 
 }
 
+/// Remake each subtree methods
 pub trait WalkExt
     : IntoIterator<Item = TokenTree>
     + FromIterator<TokenTree>
