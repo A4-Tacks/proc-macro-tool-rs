@@ -1,11 +1,13 @@
-use std::{iter::once, mem::take};
+use core::{iter::once, mem::take};
 
 use crate::{
     puncts, puncts_spanned, ParseIter, ParseIterExt as _, SetSpan as _,
+    TokenKind,
 };
 use proc_macro::{
-    Delimiter, Group, Ident, Literal, Punct, Spacing::{self, *}, Span, TokenStream,
-    TokenTree,
+    Delimiter, Group, Ident, Literal, Punct,
+    Spacing::{self, *},
+    Span, TokenStream, TokenTree,
 };
 
 pub trait TokenStreamExt
@@ -153,6 +155,20 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
         self.as_literal().is_some()
     }
 
+    fn kind(&self) -> TokenKind {
+        if self.is_literal() {
+            TokenKind::Literal
+        } else if self.is_punct() {
+            TokenKind::Punct
+        } else if self.is_group() {
+            TokenKind::Group
+        } else if self.is_ident() {
+            TokenKind::Ident
+        } else {
+            unreachable!()
+        }
+    }
+
     /// Ident content equal to `keyword` str
     ///
     /// Other return `false` when `self` is not [`Ident`]
@@ -260,15 +276,22 @@ impl TokenTreeExt for TokenTree {
             _ => Err(self),
         }
     }
+
+    fn kind(&self) -> TokenKind {
+        self.into()
+    }
 }
 macro_rules! impl_token_tree_ext {
-    ($as:ident, $into:ident, $ty:ty) => {
+    ($as:ident, $into:ident, $ty:ident) => {
         impl TokenTreeExt for $ty {
             fn $as(&self) -> Option<&$ty> {
                 Some(self)
             }
             fn $into(self) -> Result<$ty, Self> {
                 Ok(self)
+            }
+            fn kind(&self) -> TokenKind {
+                TokenKind::$ty
             }
         }
     };
@@ -283,6 +306,10 @@ impl TokenTreeExt for Group {
 
     fn into_group(self) -> Result<Group, Self> {
         Ok(self)
+    }
+
+    fn kind(&self) -> TokenKind {
+        TokenKind::Group
     }
 
     fn is_solid_group(&self) -> bool {

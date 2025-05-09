@@ -344,5 +344,22 @@ pub fn __test() {
             assert!(input[1].is_punct() && stream[1].is_punct());
             assert!(input[2].is_literal() && stream[2].is_literal());
         }
+
+        fn group_functions_test() {
+            let input = stream([
+                'a'.unsuffixed().tt(),
+                '+'.punct(Joint).tt(),
+                2.unsuffixed().tt(),
+            ]);
+            let a = brace(input.clone());
+            let b = input.grouped_brace();
+
+            assert_eq!(a.delimiter(), b.delimiter());
+            assert_eq!(a.stream().into_iter().size_hint(),
+                       b.stream().into_iter().size_hint());
+            for (a, b) in a.stream().into_iter().zip(b.stream()) {
+                assert_eq!(a.kind(), b.kind());
+            }
+        }
     }
 }

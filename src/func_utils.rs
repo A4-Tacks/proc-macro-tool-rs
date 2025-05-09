@@ -168,3 +168,43 @@ where T: SetSpan,
         tt.set_spaned(span)
     }
 }
+
+/// Like [`Group::new(Delimiter::Parenthesis, iter)`](Group::new)
+pub fn paren<I>(iter: I) -> Group
+where I: IntoIterator,
+      TokenStream: FromIterator<I::Item>,
+{
+    iter.into_iter()
+        .collect::<TokenStream>()
+        .grouped_paren()
+}
+
+/// Like [`Group::new(Delimiter::Brace, iter)`](Group::new)
+pub fn brace<I>(iter: I) -> Group
+where I: IntoIterator,
+      TokenStream: FromIterator<I::Item>,
+{
+    iter.into_iter()
+        .collect::<TokenStream>()
+        .grouped_brace()
+}
+
+/// Like [`Group::new(Delimiter::Bracket, iter)`](Group::new)
+pub fn bracket<I>(iter: I) -> Group
+where I: IntoIterator,
+      TokenStream: FromIterator<I::Item>,
+{
+    iter.into_iter()
+        .collect::<TokenStream>()
+        .grouped_bracket()
+}
+
+/// Like [`Group::new(Delimiter::None, iter)`](Group::new)
+pub fn none<I>(iter: I) -> Group
+where I: IntoIterator,
+      TokenStream: FromIterator<I::Item>,
+{
+    iter.into_iter()
+        .collect::<TokenStream>()
+        .grouped_none()
+}

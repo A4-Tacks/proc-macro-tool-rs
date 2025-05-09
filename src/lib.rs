@@ -11,11 +11,13 @@ extern crate proc_macro;
 
 mod span;
 mod exts;
+mod kind;
 mod parse_iter;
 mod func_utils;
 
 pub use span::*;
 pub use exts::*;
+pub use kind::*;
 pub use parse_iter::*;
 pub use func_utils::*;
 
