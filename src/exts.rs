@@ -166,7 +166,7 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
         } else if self.is_ident() {
             TokenKind::Ident
         } else {
-            unreachable!()
+            unimplemented!()
         }
     }
 
