@@ -484,8 +484,18 @@ pub trait PunctsExt: AsRef<[u8]> {
 }
 impl<T: AsRef<[u8]> + ?Sized> PunctsExt for T { }
 
-pub trait PunctExt {
+pub trait PunctExt: Sized {
     fn punct(self, spacing: Spacing) -> Punct;
+
+    /// Like [`.punct(Joint)`](#method.punct)
+    fn joint(self) -> Punct {
+        self.punct(Joint)
+    }
+
+    /// Like [`.punct(Alone)`](#method.punct)
+    fn alone(self) -> Punct {
+        self.punct(Alone)
+    }
 }
 impl PunctExt for char {
     /// Call [`Punct::new`]
