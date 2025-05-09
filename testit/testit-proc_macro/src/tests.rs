@@ -361,5 +361,14 @@ pub fn __test() {
                 assert_eq!(a.kind(), b.kind());
             }
         }
+
+        fn to_brace_stream_test() {
+            let a = stream(['+'.punct(Joint).tt()]).grouped_brace();
+            assert!(a.to_brace_stream().is_ok());
+            assert!(a.to_none_stream().is_err());
+            assert!(a.to_paren_stream().is_err());
+            assert!(a.to_bracket_stream().is_err());
+            assert!(a.into_bracket_stream().is_err());
+        }
     }
 }

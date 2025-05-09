@@ -218,6 +218,78 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
         self.is_delimiter(Delimiter::None)
     }
 
+    /// Call [`Group::stream`] when [`delimiter`] is [`Delimiter::Parenthesis`]
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    ///
+    /// [`delimiter`]: Group::delimiter
+    fn to_paren_stream(&self) -> Result<TokenStream, &Self> {
+        self.as_group()
+            .and_then(|g| g.is_delimiter_paren().then(|| g.stream()))
+            .ok_or(self)
+    }
+
+    /// Call [`Group::stream`] when [`delimiter`] is [`Delimiter::Brace`]
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    ///
+    /// [`delimiter`]: Group::delimiter
+    fn to_brace_stream(&self) -> Result<TokenStream, &Self> {
+        self.as_group()
+            .and_then(|g| g.is_delimiter_brace().then(|| g.stream()))
+            .ok_or(self)
+    }
+
+    /// Call [`Group::stream`] when [`delimiter`] is [`Delimiter::Bracket`]
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    ///
+    /// [`delimiter`]: Group::delimiter
+    fn to_bracket_stream(&self) -> Result<TokenStream, &Self> {
+        self.as_group()
+            .and_then(|g| g.is_delimiter_bracket().then(|| g.stream()))
+            .ok_or(self)
+    }
+
+    /// Call [`Group::stream`] when [`delimiter`] is [`Delimiter::None`]
+    ///
+    /// Other return `false` when `self` is not [`Group`]
+    ///
+    /// [`delimiter`]: Group::delimiter
+    fn to_none_stream(&self) -> Result<TokenStream, &Self> {
+        self.as_group()
+            .and_then(|g| g.is_delimiter_none().then(|| g.stream()))
+            .ok_or(self)
+    }
+
+    /// Like [`to_paren_stream`](#method.to_paren_stream),
+    /// but using `Self` instead of `&Self`
+    fn into_paren_stream(self) -> Result<TokenStream, Self> {
+        self.to_paren_stream()
+            .ok().ok_or(self)
+    }
+
+    /// Like [`to_brace_stream`](#method.to_brace_stream),
+    /// but using `Self` instead of `&Self`
+    fn into_brace_stream(self) -> Result<TokenStream, Self> {
+        self.to_brace_stream()
+            .ok().ok_or(self)
+    }
+
+    /// Like [`to_bracket_stream`](#method.to_bracket_stream),
+    /// but using `Self` instead of `&Self`
+    fn into_bracket_stream(self) -> Result<TokenStream, Self> {
+        self.to_bracket_stream()
+            .ok().ok_or(self)
+    }
+
+    /// Like [`to_none_stream`](#method.to_none_stream),
+    /// but using `Self` instead of `&Self`
+    fn into_none_stream(self) -> Result<TokenStream, Self> {
+        self.to_none_stream()
+            .ok().ok_or(self)
+    }
+
     /// Punct spacing is [`Joint`]
     ///
     /// Other return `false` when `self` is not [`Punct`]
