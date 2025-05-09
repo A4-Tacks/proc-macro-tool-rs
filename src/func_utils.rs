@@ -4,8 +4,8 @@ use proc_macro::{
 };
 
 use crate::{
-    span_setter, GetSpan, ParseIterExt as _, SetSpan as _,
-    TokenStreamExt as _, TokenTreeExt as _,
+    GetSpan, ParseIterExt as _, SetSpan, TokenStreamExt as _,
+    TokenTreeExt as _,
 };
 
 /// `<TokenStream as FromIterator<TokenTree>>::from_iter`
@@ -105,18 +105,19 @@ pub fn try_pfunc<'a, R>(
 #[must_use]
 pub fn err(msg: &str, span: impl GetSpan) -> TokenStream {
     let s = span_setter(span.span());
+
     stream([
-        s(Punct::new(':', Joint).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Ident::new("core", span.span()).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Punct::new(':', Joint).into()),
-        s(Ident::new("compile_error", span.span()).into()),
-        s(Punct::new('!', Joint).into()),
-        s(Group::new(Delimiter::Brace, stream([
-            s(Literal::string(msg).into()),
-        ])).into()),
-    ])
+        Punct::new(':', Joint).into(),
+        Punct::new(':', Joint).into(),
+        Ident::new("core", span.span()).into(),
+        Punct::new(':', Joint).into(),
+        Punct::new(':', Joint).into(),
+        Ident::new("compile_error", span.span()).into(),
+        Punct::new('!', Joint).into(),
+        Group::new(Delimiter::Brace, stream([
+            Literal::string(msg).into(),
+        ].map(s))).into(),
+    ].map(s))
 }
 
 /// Like [`err()`], but use [`Result`]
@@ -157,4 +158,13 @@ pub fn puncts_spanned(puncts: impl AsRef<[u8]>, span: Span) -> TokenStream {
     }
 
     result
+}
+
+/// Generate a function, set input `TokenTree` span
+pub fn span_setter<T>(span: Span) -> impl Fn(T) -> T + Copy
+where T: SetSpan,
+{
+    move |tt| {
+        tt.set_spaned(span)
+    }
 }

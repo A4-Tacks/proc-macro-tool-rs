@@ -98,12 +98,3 @@ impl SetSpan for Span {
         *self = span
     }
 }
-
-/// Generate a function, set input `TokenTree` span
-pub fn span_setter<T>(span: Span) -> impl Fn(T) -> T
-where T: SetSpan,
-{
-    move |tt| {
-        tt.set_spaned(span)
-    }
-}
