@@ -21,7 +21,7 @@ fn index_tt<I>(mut tt: TokenTree, iter: &mut ParseIter<I>) -> Result<TokenTree, 
 where I: Iterator<Item = TokenTree>,
 {
     while let Some((mut span, mut param)) = iter
-        .next_if(|tt| tt.is_delimiter(Delimiter::Bracket))
+        .next_if(|tt| tt.is_delimiter_bracket())
         .map(|tt| tt.into_group().unwrap())
         .map(|g| (g.span_close(), g.stream().into_iter()))
     {

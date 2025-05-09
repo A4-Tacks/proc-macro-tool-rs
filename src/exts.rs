@@ -198,6 +198,26 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
         self.as_group().is_some_and(|g| g.is_delimiter(delimiter))
     }
 
+    /// Like [`self.is_delimiter(Delimiter::Parenthesis)`](#method.is_delimiter)
+    fn is_delimiter_paren(&self) -> bool {
+        self.is_delimiter(Delimiter::Parenthesis)
+    }
+
+    /// Like [`self.is_delimiter(Delimiter::Brace)`](#method.is_delimiter)
+    fn is_delimiter_brace(&self) -> bool {
+        self.is_delimiter(Delimiter::Brace)
+    }
+
+    /// Like [`self.is_delimiter(Delimiter::Bracket)`](#method.is_delimiter)
+    fn is_delimiter_bracket(&self) -> bool {
+        self.is_delimiter(Delimiter::Bracket)
+    }
+
+    /// Like [`self.is_delimiter(Delimiter::None)`](#method.is_delimiter)
+    fn is_delimiter_none(&self) -> bool {
+        self.is_delimiter(Delimiter::None)
+    }
+
     /// Punct spacing is [`Joint`]
     ///
     /// Other return `false` when `self` is not [`Punct`]
