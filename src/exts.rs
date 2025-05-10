@@ -439,7 +439,7 @@ macro_rules! impl_unsuffixes {
             $(
                 #[doc = concat!(
                     "Call [`Literal::",
-                    stringify!($unsuffixed),
+                    stringify!($suffixed),
                     "`]",
                 )]
                 impl Suffixed for $ty {

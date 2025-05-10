@@ -1,4 +1,4 @@
-use proc_macro::TokenTree;
+use proc_macro::{Group, Ident, Literal, Punct, TokenTree};
 
 use crate::TokenTreeExt as _;
 
@@ -79,8 +79,41 @@ impl From<&TokenTree> for TokenKind {
         }
     }
 }
+impl From<&mut TokenTree> for TokenKind {
+    fn from(tt: &mut TokenTree) -> Self {
+        match tt {
+            TokenTree::Group(_) => Self::Group,
+            TokenTree::Ident(_) => Self::Ident,
+            TokenTree::Punct(_) => Self::Punct,
+            TokenTree::Literal(_) => Self::Literal,
+        }
+    }
+}
 impl From<TokenTree> for TokenKind {
     fn from(tt: TokenTree) -> Self {
         Self::from(&tt)
     }
 }
+macro_rules! impl_kind {
+    ($i:ident) => {
+        impl From<$i> for TokenKind {
+            fn from(_: $i) -> Self {
+                Self::$i
+            }
+        }
+        impl From<&$i> for TokenKind {
+            fn from(_: &$i) -> Self {
+                Self::$i
+            }
+        }
+        impl From<&mut $i> for TokenKind {
+            fn from(_: &mut $i) -> Self {
+                Self::$i
+            }
+        }
+    };
+}
+impl_kind!(Group);
+impl_kind!(Ident);
+impl_kind!(Punct);
+impl_kind!(Literal);
