@@ -4,7 +4,7 @@ use proc_macro::{
 };
 
 use crate::{
-    GetSpan, ParseIterExt as _, SetSpan, TokenStreamExt as _,
+    GetSpan, ParseIter, ParseIterExt as _, SetSpan, TokenStreamExt as _,
     TokenTreeExt as _,
 };
 
@@ -26,26 +26,50 @@ where I: IntoIterator<Item = TokenStream>,
     TokenStream::from_iter(iter)
 }
 
+fn pfunc_predicate<I>(names: &[&str], p: &Punct, iter: &mut ParseIter<I>) -> bool
+where I: Iterator<Item = TokenTree>,
+{
+    p.as_char() == '#'
+        && iter.peek_is(|i| i.as_ident()
+            .is_some_and(|i| names.contains(&&*i.to_string())))
+        && iter.peek_i_is(1, |t| t.is_solid_group())
+}
+
+fn subtree_contain_pfunc(names: &[&str], stream: impl IntoIterator<Item = TokenTree>) -> bool {
+    let iter = &mut stream.parse_iter();
+
+    while let Some(tt) = iter.next() {
+        match tt {
+            TokenTree::Punct(p) if pfunc_predicate(names, &p, iter) => {
+                return true;
+            },
+            TokenTree::Group(g)
+                if subtree_contain_pfunc(names, g.stream()) =>
+            {
+                return true;
+            },
+            _ => {},
+        }
+    }
+
+    false
+}
+
 fn pfunc_impl<F, R>(
     stream: impl IntoIterator<Item = TokenTree>,
     proc_input: bool,
     names: &[&str],
+    lossless: bool,
     f: &mut F,
 ) -> Result<TokenStream, R>
 where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
 {
-    let mut iter = stream.into_iter().parse_iter();
+    let iter = &mut stream.parse_iter();
     let mut result = TokenStream::new();
 
     while let Some(tt) = iter.next() {
         match tt {
-            TokenTree::Punct(p)
-                if p.as_char() == '#'
-                && iter.peek_is(|i| i.as_ident()
-                    .is_some_and(|i| names.contains(&&*i.to_string())))
-                && iter.peek_i_is(1, |t| t.is_solid_group())
-                =>
-            {
+            TokenTree::Punct(p) if pfunc_predicate(names, &p, iter) => {
                 let ident = iter.next().unwrap().into_ident().unwrap();
                 let mut group = iter.next().unwrap().into_group().unwrap();
                 if proc_input {
@@ -53,6 +77,7 @@ where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
                         group.stream(),
                         proc_input,
                         names,
+                        lossless,
                         f,
                     )?;
                     group = sub
@@ -61,8 +86,16 @@ where F: FnMut(Ident, Group) -> Result<TokenStream, R>,
                 }
                 result.add(f(ident, group)?);
             },
-            TokenTree::Group(g) => {
-                let sub = pfunc_impl(g.stream(), proc_input, names, f)?;
+            TokenTree::Group(g)
+                if !lossless || subtree_contain_pfunc(names, g.stream()) =>
+            {
+                let sub = pfunc_impl(
+                    g.stream(),
+                    proc_input,
+                    names,
+                    lossless,
+                    f,
+                )?;
                 result.push(sub
                     .grouped(g.delimiter())
                     .set_spaned(g.span())
@@ -88,7 +121,7 @@ pub fn pfunc<'a>(
     let f = &mut |i, g| {
         Ok::<_, ()>(f(i, g))
     };
-    pfunc_impl(stream, proc_input, names.as_ref(), f).unwrap()
+    pfunc_impl(stream, proc_input, names.as_ref(), false, f).unwrap()
 }
 
 /// Call `f` on `#name(...)` `#name[...]` etc, exclude [`Delimiter::None`]
@@ -100,7 +133,31 @@ pub fn try_pfunc<'a, R>(
     names: impl AsRef<[&'a str]>,
     mut f: impl FnMut(Ident, Group) -> Result<TokenStream, R>,
 ) -> Result<TokenStream, R> {
-    pfunc_impl(stream, proc_input, names.as_ref(), &mut f)
+    pfunc_impl(stream, proc_input, names.as_ref(), false, &mut f)
+}
+
+/// Like [`pfunc`], but it's lossless when no changes are made
+#[allow(clippy::missing_panics_doc)]
+pub fn pfunc_lossless<'a>(
+    stream: impl IntoIterator<Item = TokenTree>,
+    proc_input: bool,
+    names: impl AsRef<[&'a str]>,
+    mut f: impl FnMut(Ident, Group) -> TokenStream,
+) -> TokenStream {
+    let f = &mut |i, g| {
+        Ok::<_, ()>(f(i, g))
+    };
+    pfunc_impl(stream, proc_input, names.as_ref(), true, f).unwrap()
+}
+
+/// Like [`try_pfunc`], but it's lossless when no changes are made
+pub fn try_pfunc_lossless<'a, R>(
+    stream: impl IntoIterator<Item = TokenTree>,
+    proc_input: bool,
+    names: impl AsRef<[&'a str]>,
+    mut f: impl FnMut(Ident, Group) -> Result<TokenStream, R>,
+) -> Result<TokenStream, R> {
+    pfunc_impl(stream, proc_input, names.as_ref(), true, &mut f)
 }
 
 /// Make `compile_error! {"..."}`
