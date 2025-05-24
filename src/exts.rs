@@ -98,10 +98,7 @@ pub trait WalkExt
                 .map(|tt| {
                     let tt = match tt {
                         TokenTree::Group(g) => {
-                            walk_impl(g.stream(), &mut *f)
-                                .grouped(g.delimiter())
-                                .set_spaned(g.span())
-                                .into()
+                            g.map(|this| walk_impl(this, f)).tt()
                         },
                         _ => tt,
                     };
@@ -511,5 +508,19 @@ impl StrExt for str {
     /// Call [`Ident::new`]
     fn ident(&self, span: Span) -> Ident {
         Ident::new(self, span)
+    }
+}
+
+pub trait GroupExt {
+    fn map<F>(&self, f: F) -> Self
+    where F: FnOnce(TokenStream) -> TokenStream;
+}
+impl GroupExt for Group {
+    fn map<F>(&self, f: F) -> Self
+    where F: FnOnce(TokenStream) -> TokenStream,
+    {
+        f(self.stream())
+            .grouped(self.delimiter())
+            .set_spaned(self.span())
     }
 }
