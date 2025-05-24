@@ -512,6 +512,7 @@ impl StrExt for str {
 }
 
 pub trait GroupExt {
+    #[must_use]
     fn map<F>(&self, f: F) -> Self
     where F: FnOnce(TokenStream) -> TokenStream;
 }
