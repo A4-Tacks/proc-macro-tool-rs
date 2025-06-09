@@ -1,4 +1,4 @@
-use crate::{stream, TokenStreamExt as _, TokenTreeExt};
+use crate::{stream, TokenStreamExt as _, TokenTreeExt as _};
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
 use std::{array, collections::VecDeque, iter::FusedIterator};
 
@@ -147,13 +147,13 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         attributes
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn next_vis(&mut self) -> Option<TokenStream> {
         if self.peek_is(|tt| tt.is_keyword("pub")) {
             if self.peek_i_is(1, |tt| tt.is_delimiter_paren()) {
                 return Some(stream(self.next_tts::<2>()));
-            } else {
-                return Some(self.next().unwrap().into());
             }
+            return Some(self.next().unwrap().into());
         }
         None
     }
