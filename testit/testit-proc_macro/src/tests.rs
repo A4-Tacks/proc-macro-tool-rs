@@ -370,5 +370,124 @@ pub fn __test() {
             assert!(a.to_bracket_stream().is_err());
             assert!(a.into_bracket_stream().is_err());
         }
+
+        fn next_attributes() {
+            let src = r#"
+                #[a]
+                #[b = 2]
+                #[c = 2]
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert_eq!(iter.next_attributes().len(), 3);
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_outer_attributes() {
+            let src = r#"
+                #![a]
+                #![b = 2]
+                #[c = 2]
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                #[c = 2]
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert_eq!(iter.next_outer_attributes().len(), 2);
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis() {
+            let src = r#"
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_some());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis1() {
+            let src = r#"
+                pub(crate) fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_some());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis2() {
+            let src = r#"
+                pub(in super) fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_some());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis3() {
+            let src = r#"
+                pub(in super) pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_some());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis4() {
+            let src = r#"
+                (in super) pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                (in super) pub fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_none());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn next_vis5() {
+            let src = r#"
+                fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                fn foo() {}
+            "#.parse::<TokenStream>().unwrap();
+
+            let mut iter = src.parse_iter();
+            assert!(iter.next_vis().is_none());
+            let output = stream(iter);
+            assert_eq!(output.to_string(), expected.to_string());
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::TokenStreamExt as _;
+use crate::{stream, TokenStreamExt as _, TokenTreeExt};
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
 use std::{array, collections::VecDeque, iter::FusedIterator};
 
@@ -120,6 +120,42 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
             };
             left.push(next);
         }
+    }
+
+    pub fn next_attributes(&mut self) -> Vec<TokenStream> {
+        let mut attributes = vec![];
+
+        while self.peek_puncts("#").is_some()
+            &&self.peek_i_is(1, |tt| tt.is_delimiter_bracket())
+        {
+            attributes.push(self.next_tts::<2>().into_iter().collect());
+        }
+
+        attributes
+    }
+
+    pub fn next_outer_attributes(&mut self) -> Vec<TokenStream> {
+        let mut attributes = vec![];
+
+        while self.peek_puncts("#").is_some()
+            &&self.peek_i_is(1, |tt| tt.is_punch('!'))
+            &&self.peek_i_is(2, |tt| tt.is_delimiter_bracket())
+        {
+            attributes.push(stream(self.next_tts::<3>()));
+        }
+
+        attributes
+    }
+
+    pub fn next_vis(&mut self) -> Option<TokenStream> {
+        if self.peek_is(|tt| tt.is_keyword("pub")) {
+            if self.peek_i_is(1, |tt| tt.is_delimiter_paren()) {
+                return Some(stream(self.next_tts::<2>()));
+            } else {
+                return Some(self.next().unwrap().into());
+            }
+        }
+        None
     }
 }
 impl<I: Iterator<Item = TokenTree>> Iterator for ParseIter<I> {
