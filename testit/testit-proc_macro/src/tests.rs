@@ -165,6 +165,85 @@ pub fn __test() {
             assert!(puncts.split_puncts(",+").is_none());
         }
 
+        fn split_all_test() {
+            let splitted = puncts("+, -, *")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "+",
+                "-",
+                "*",
+            ]);
+        }
+
+        fn split_all_test1() {
+            let splitted = puncts("+, -, *,")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "+",
+                "-",
+                "*",
+            ]);
+        }
+
+        fn split_all_test2() {
+            let splitted = puncts(", -, *,")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "",
+                "-",
+                "*",
+            ]);
+        }
+
+        fn split_all_test3() {
+            let splitted = puncts("+, -, ,")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "+",
+                "-",
+                "",
+            ]);
+        }
+
+        fn split_all_test4() {
+            let splitted = puncts("+, -, ,,")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "+",
+                "-",
+                "",
+                "",
+            ]);
+        }
+
+        fn split_all_test4() {
+            let splitted = puncts("+, , *,")
+                .parse_iter()
+                .split_puncts_all(",")
+                .map(|stream| stream.to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(splitted, [
+                "+",
+                "",
+                "*",
+            ]);
+        }
+
         fn parse_iter_split_state() {
             let mut puncts = puncts("-+*,.,").parse_iter();
             assert!(puncts.split_puncts(",+").is_none());

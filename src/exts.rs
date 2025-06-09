@@ -54,13 +54,18 @@ pub trait TokenStreamExt
         self.grouped(Delimiter::None)
     }
 
-    /// Split [`TokenStream`] to `predicate` false and true
+    /// Split [`TokenStream`] with `puncts`
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
     fn split_puncts(self, puncts: impl AsRef<[u8]>) -> Option<(
         Self,
         ParseIter<Self::IntoIter>,
     )>;
+
+    /// Split all [`TokenStream`] with `puncts`
+    ///
+    /// Like `"+-,-+".split_puncts_all(",")` -> `"+-", "-+"`
+    fn split_puncts_all(self, puncts: impl AsRef<[u8]>) -> Vec<Self>;
 }
 impl TokenStreamExt for TokenStream {
     fn grouped(self, delimiter: Delimiter) -> Group {
@@ -74,6 +79,12 @@ impl TokenStreamExt for TokenStream {
     {
         let mut iter = self.parse_iter();
         Some((iter.split_puncts(puncts)?, iter))
+    }
+
+    fn split_puncts_all(self, puncts: impl AsRef<[u8]>) -> Vec<Self> {
+        self.parse_iter()
+            .split_puncts_all(puncts)
+            .collect()
     }
 
 }

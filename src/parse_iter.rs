@@ -1,6 +1,6 @@
 use crate::{stream, TokenTreeExt as _};
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
-use std::{array, collections::VecDeque, iter::FusedIterator};
+use std::{array, collections::VecDeque, iter::{self, FusedIterator}};
 
 /// Create [`ParseIter`]
 pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
@@ -117,9 +117,9 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         Some(self.buf.drain(..puncts.len()))
     }
 
-    /// Split [`TokenStream`] to `predicate` false and true
+    /// Split [`TokenStream`] with `puncts`
     ///
-    /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
+    /// Like `"+-,-+".split_puncts(",")` -> `"+-"`
     #[allow(clippy::missing_panics_doc)]
     pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
         let puncts = puncts.as_ref();
@@ -134,6 +134,19 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
             self.peek_i(i)?;
             i += 1;
         }
+    }
+
+    /// Split all [`TokenStream`] with `puncts`
+    ///
+    /// Like `"+-,-+".split_puncts(",")` -> `"+-", "-+"`
+    pub fn split_puncts_all<'a>(
+        &'a mut self,
+        puncts: impl AsRef<[u8]> + 'a,
+    ) -> impl Iterator<Item = TokenStream> + 'a {
+        iter::from_fn(move || {
+            self.split_puncts(puncts.as_ref())
+                .or_else(|| self.peek().is_some().then(|| self.collect()))
+        })
     }
 
     pub fn next_attributes(&mut self) -> Vec<TokenStream> {
