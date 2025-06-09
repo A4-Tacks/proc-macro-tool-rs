@@ -35,6 +35,18 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         }
     }
 
+    pub fn next_i_if<F>(&mut self, i: usize, f: F) -> Option<TokenTree>
+    where F: FnOnce(&TokenTree) -> bool,
+    {
+        let peek = self.peek_i(i)?;
+
+        if f(peek) {
+            self.nth(i)
+        } else {
+            None
+        }
+    }
+
     pub fn peek_i(&mut self, i: usize) -> Option<&TokenTree> {
         for _ in self.buf.len()..=i {
             self.buf.push_back(self.iter.next()?);
