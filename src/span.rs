@@ -8,8 +8,8 @@ pub trait GetSpan: Sized {
 
     /// `*dst = self.span()`
     #[must_use]
-    fn span_as(self, dst: &mut Span) -> Self {
-        *dst = self.span();
+    fn span_as(self, mut dst: impl SetSpan) -> Self {
+        dst.set_span(self.span());
         self
     }
 
