@@ -10,31 +10,36 @@ use proc_macro::{
     Span, TokenStream, TokenTree,
 };
 
-pub trait StreamIterExt: Iterator + Sized
-where TokenStream: Extend<Self::Item>,
-{
-    fn join<I>(mut self, sep: I) -> TokenStream
+pub trait StreamIterExt: Iterator + Sized {
+    fn join<I>(self, sep: I) -> TokenStream
     where I: Clone,
-          TokenStream: Extend<I>,
+          TokenStream: Extend<I> + Extend<Self::Item>,
+    {
+        self.map(Ok::<_, ()>)
+            .try_join(sep)
+            .unwrap()
+    }
+
+    fn try_join<I, T, E>(mut self, sep: I) -> Result<TokenStream, E>
+    where Self: Iterator<Item = Result<T, E>>,
+          I: Clone,
+          TokenStream: Extend<I> + Extend<T>,
     {
         let mut result = TokenStream::new();
 
         if let Some(first) = self.next() {
-            result.extend(once(first));
+            result.extend(once(first?));
 
             for rest in self {
                 result.extend(once(sep.clone()));
-                result.extend(once(rest));
+                result.extend(once(rest?));
             }
         }
 
-        result
+        Ok(result)
     }
 }
-impl<T: Iterator> StreamIterExt for T
-where TokenStream: Extend<Self::Item>,
-{
-}
+impl<T: Iterator> StreamIterExt for T { }
 
 pub trait TokenStreamExt
     : Default
