@@ -1,6 +1,6 @@
 use crate::TokenStreamExt as _;
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
-use std::{collections::VecDeque, iter::FusedIterator};
+use std::{array, collections::VecDeque, iter::FusedIterator};
 
 /// Create [`ParseIter`]
 pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
@@ -45,6 +45,14 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         } else {
             None
         }
+    }
+
+    /// # Panics
+    /// `self.count() < N`
+    #[track_caller]
+    pub fn next_tts<const N: usize>(&mut self) -> [TokenTree; N] {
+        array::from_fn(|_| self.next()
+            .expect("unexpected end of input"))
     }
 
     pub fn peek_i(&mut self, i: usize) -> Option<&TokenTree> {
