@@ -574,5 +574,24 @@ pub fn __test() {
             let output = stream(iter);
             assert_eq!(output.to_string(), expected.to_string());
         }
+
+        fn join() {
+            let src = r#"
+                a b 1
+            "#.parse::<TokenStream>().unwrap();
+            let expected = r#"
+                a, b, 1
+            "#.parse::<TokenStream>().unwrap();
+
+            let output = src.into_iter().join(puncts(", "));
+            assert_eq!(output.to_string(), expected.to_string());
+        }
+
+        fn join1() {
+            let src = TokenStream::new();
+
+            let output = src.into_iter().join(puncts(", "));
+            assert!(output.is_empty());
+        }
     }
 }
