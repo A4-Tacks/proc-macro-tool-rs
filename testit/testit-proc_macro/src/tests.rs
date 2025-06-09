@@ -165,6 +165,12 @@ pub fn __test() {
             assert!(puncts.split_puncts(",+").is_none());
         }
 
+        fn parse_iter_split_state() {
+            let mut puncts = puncts("-+*,.,").parse_iter();
+            assert!(puncts.split_puncts(",+").is_none());
+            assert_eq!(puncts.next().unwrap().as_punct_char(), Some('-'));
+        }
+
         fn peek_test1() {
             let puncts = puncts("+-*/ ");
             let mut iter = puncts.parse_iter();

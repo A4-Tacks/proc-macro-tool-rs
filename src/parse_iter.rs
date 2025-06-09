@@ -1,4 +1,4 @@
-use crate::{stream, TokenStreamExt as _, TokenTreeExt as _};
+use crate::{stream, TokenTreeExt as _};
 use proc_macro::{Spacing::*, TokenStream, TokenTree};
 use std::{array, collections::VecDeque, iter::FusedIterator};
 
@@ -75,50 +75,64 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
     }
 
     /// Peek jointed puncts
-    pub fn peek_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<
-        impl Iterator<Item = &TokenTree>
-    > {
+    pub fn peek_puncts(
+        &mut self,
+        puncts: impl AsRef<[u8]>,
+    ) -> Option<impl Iterator<Item = &TokenTree>> {
+        self.peek_i_puncts(0, puncts)
+    }
+
+    /// Peek jointed puncts
+    pub fn peek_i_puncts(
+        &mut self,
+        i: usize,
+        puncts: impl AsRef<[u8]>,
+    ) -> Option<impl Iterator<Item = &TokenTree>> {
         let mut prev = None;
 
-        for (i, ch) in puncts.as_ref().iter()
-            .copied().map(char::from).enumerate()
-        {
+        let puncts = puncts.as_ref();
+
+        for (j, ch) in puncts.iter().copied().map(char::from).enumerate() {
             if let Some(prev) = prev {
                 if prev == Alone { return None }
             }
 
-            let tt = self.peek_i(i)?;
+            let tt = self.peek_i(i + j)?;
             let TokenTree::Punct(p) = tt else { return None };
             if p.as_char() != ch { return None }
 
             prev = Some(p.spacing());
         }
-        Some(self.buf.iter())
+        Some(self.buf.iter().skip(i).take(puncts.len()))
     }
 
     /// Next jointed puncts
-    pub fn next_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<
-        impl Iterator<Item = TokenTree> + '_
-    > {
-        let _ = self.peek_puncts(puncts.as_ref())?;
-        Some(self.buf.drain(..puncts.as_ref().len()))
+    pub fn next_puncts(
+        &mut self,
+        puncts: impl AsRef<[u8]>,
+    ) -> Option<impl Iterator<Item = TokenTree> + '_> {
+        let puncts = puncts.as_ref();
+        let _ = self.peek_puncts(puncts)?;
+
+        Some(self.buf.drain(..puncts.len()))
     }
 
     /// Split [`TokenStream`] to `predicate` false and true
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `("+-", "-+")`
+    #[allow(clippy::missing_panics_doc)]
     pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
-        let mut left = TokenStream::new();
         let puncts = puncts.as_ref();
+        let mut i = 0;
 
         loop {
-            if self.next_puncts(puncts).is_some() {
+            if self.peek_i_puncts(i, puncts).is_some() {
+                let left = self.take(i).collect();
+                let _ = self.next_puncts(puncts).unwrap();
                 break Some(left);
             }
-            let Some(next) = self.next() else {
-                break None;
-            };
-            left.push(next);
+            self.peek_i(i)?;
+            i += 1;
         }
     }
 
