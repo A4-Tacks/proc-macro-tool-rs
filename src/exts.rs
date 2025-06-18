@@ -567,3 +567,27 @@ impl GroupExt for Group {
             .set_spaned(self.span())
     }
 }
+
+pub trait SpacingExt {
+    /// `Punct::new(ch, self)`
+    fn punct(self, ch: char) -> Punct;
+
+    /// `*self == Joint`
+    fn is_joint(&self) -> bool;
+
+    /// `*self == Alone`
+    fn is_alone(&self) -> bool;
+}
+impl SpacingExt for Spacing {
+    fn punct(self, ch: char) -> Punct {
+        Punct::new(ch, self)
+    }
+
+    fn is_joint(&self) -> bool {
+        *self == Joint
+    }
+
+    fn is_alone(&self) -> bool {
+        *self == Alone
+    }
+}
