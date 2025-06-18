@@ -568,9 +568,20 @@ impl GroupExt for Group {
     }
 }
 
+// FIXME: 在下个兼容范围移除punct
 pub trait SpacingExt {
     /// `Punct::new(ch, self)`
-    fn punct(self, ch: char) -> Punct;
+    #[doc(hidden)]
+    #[deprecated = "renaming to `punch`"]
+    fn punct(self, ch: char) -> Punct where Self: Sized {
+        self.punch(ch)
+    }
+
+    /// `Punct::new(ch, self)`
+    fn punch(self, ch: char) -> Punct where Self: Sized {
+        #[allow(deprecated)]
+        self.punct(ch)
+    }
 
     /// `*self == Joint`
     fn is_joint(&self) -> bool;
@@ -579,7 +590,7 @@ pub trait SpacingExt {
     fn is_alone(&self) -> bool;
 }
 impl SpacingExt for Spacing {
-    fn punct(self, ch: char) -> Punct {
+    fn punch(self, ch: char) -> Punct {
         Punct::new(ch, self)
     }
 
