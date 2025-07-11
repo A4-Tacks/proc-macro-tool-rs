@@ -1,4 +1,5 @@
 use core::{iter::once, mem::take};
+use std::convert::identity;
 
 use crate::{
     puncts, puncts_spanned, ParseIter, ParseIterExt as _, SetSpan as _,
@@ -193,6 +194,34 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
 
     fn is_literal(&self) -> bool {
         self.as_literal().is_some()
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn map_ident<F: FnOnce(Ident) -> R, R: Into<Self>>(self, op: F) -> Self {
+        self.into_ident()
+            .map(op)
+            .map_or_else(identity, Into::into)
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn map_punct<F: FnOnce(Punct) -> R, R: Into<Self>>(self, op: F) -> Self {
+        self.into_punct()
+            .map(op)
+            .map_or_else(identity, Into::into)
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn map_group<F: FnOnce(Group) -> R, R: Into<Self>>(self, op: F) -> Self {
+        self.into_group()
+            .map(op)
+            .map_or_else(identity, Into::into)
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn map_literal<F: FnOnce(Literal) -> R, R: Into<Self>>(self, op: F) -> Self {
+        self.into_literal()
+            .map(op)
+            .map_or_else(identity, Into::into)
     }
 
     fn kind(&self) -> TokenKind {
