@@ -239,6 +239,30 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
             .map_or_else(identity, Into::into)
     }
 
+    #[allow(clippy::return_self_not_must_use)]
+    fn inspect_ident<F: FnOnce(&Ident)>(self, op: F) -> Self {
+        self.as_ident().map(op);
+        self
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn inspect_punct<F: FnOnce(&Punct)>(self, op: F) -> Self {
+        self.as_punct().map(op);
+        self
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn inspect_group<F: FnOnce(&Group)>(self, op: F) -> Self {
+        self.as_group().map(op);
+        self
+    }
+
+    #[allow(clippy::return_self_not_must_use)]
+    fn inspect_literal<F: FnOnce(&Literal)>(self, op: F) -> Self {
+        self.as_literal().map(op);
+        self
+    }
+
     fn kind(&self) -> TokenKind {
         if self.is_literal() {
             TokenKind::Literal
