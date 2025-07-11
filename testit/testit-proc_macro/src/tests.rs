@@ -413,6 +413,20 @@ pub fn __test() {
             assert!(acc[5].is_literal());
         }
 
+        fn grouped_walk_test() {
+            let input = TokenStream::from_str("(1+2)*3").unwrap();
+            let mut acc = vec![];
+            let _ = input.grouped_walk(Delimiter::Brace, |x| { acc.push(x.clone()); x });
+            assert_eq!(acc.len(), 7);
+            assert!(acc[0].is_literal());
+            assert!(acc[1].is_punct());
+            assert!(acc[2].is_literal());
+            assert!(acc[3].is_delimiter_paren());
+            assert!(acc[4].is_punct());
+            assert!(acc[5].is_literal());
+            assert!(acc[6].is_delimiter_brace());
+        }
+
         fn take_test() {
             let input = TokenStream::from_str("1+2").unwrap();
             let stream = TokenStream::new()

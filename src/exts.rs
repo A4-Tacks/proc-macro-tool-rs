@@ -151,6 +151,21 @@ pub trait WalkExt
         }
         walk_impl(self, &mut f)
     }
+
+    /// Remake each subtree, and use [`Group`] pack it
+    ///
+    /// Additional call `f` on grouped tokens
+    ///
+    /// `"(1+2)*3"` -> call
+    /// `f` on `1`, `+`, `2`, `(f(1) f(+) f(2))`, `*`, `3`,
+    /// `((f(1) f(+) f(2)) f(*) f(3))`
+    #[must_use]
+    fn grouped_walk<F>(self, delimiter: Delimiter, mut f: F) -> TokenTree
+    where F: FnMut(TokenTree) -> TokenTree,
+    {
+        let stream = self.walk(&mut f);
+        f(Group::new(delimiter, stream.into_iter().collect()).tt())
+    }
 }
 impl<I: IntoIterator<Item = TokenTree> + FromIterator<TokenTree>> WalkExt for I { }
 
