@@ -1,6 +1,6 @@
 [package]
 name = "proc-macro-tool"
-version = "0.8.33"
+version = "0.8.34"
 edition = "2021"
 
 authors = ["A4-Tacks <wdsjxhno1001@163.com>"]

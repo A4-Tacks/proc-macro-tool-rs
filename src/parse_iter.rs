@@ -182,6 +182,16 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         attributes
     }
 
+    pub fn push_if_to<To, F>(&mut self, to: &mut To, f: F) -> bool
+    where To: Extend<TokenTree>,
+          F: FnOnce(&TokenTree) -> bool,
+    {
+        self.peek()
+            .is_some_and(f)
+            .then(|| to.extend(self.next()))
+            .is_some()
+    }
+
     /// # Note
     ///
     /// This method parse like `#![...]`
