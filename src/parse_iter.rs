@@ -1,5 +1,5 @@
 use crate::{stream, TokenTreeExt as _};
-use proc_macro::{Spacing::*, TokenStream, TokenTree};
+use proc_macro::{Spacing::*, Span, TokenStream, TokenTree};
 use std::{array, collections::VecDeque, iter::{self, FusedIterator}};
 
 /// Create [`ParseIter`]
@@ -60,6 +60,16 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
             self.buf.push_back(self.iter.next()?);
         }
         Some(&self.buf[i])
+    }
+
+    /// Get current token span. return [`Span::call_site`] when nothing token
+    pub fn span(&mut self) -> Span {
+        self.peek().map_or_else(Span::call_site, TokenTree::span)
+    }
+
+    /// Get `i`th token span. return [`Span::call_site`] when nothing token
+    pub fn span_i(&mut self, i: usize) -> Span {
+        self.peek_i(i).map_or_else(Span::call_site, TokenTree::span)
     }
 
     pub fn peek_is<F>(&mut self, f: F) -> bool
