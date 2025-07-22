@@ -116,6 +116,14 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         Some(self.buf.iter().skip(i).take(puncts.len()))
     }
 
+    pub fn is_puncts(&mut self, puncts: impl AsRef<[u8]>) -> bool {
+        self.peek_puncts(puncts).is_some()
+    }
+
+    pub fn is_puncts_at(&mut self, i: usize, puncts: impl AsRef<[u8]>) -> bool {
+        self.peek_i_puncts(i, puncts).is_some()
+    }
+
     /// Next jointed puncts
     pub fn next_puncts(
         &mut self,
