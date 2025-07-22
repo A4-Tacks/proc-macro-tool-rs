@@ -138,6 +138,8 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
     /// Split [`TokenStream`] with `puncts`
     ///
     /// Like `"+-,-+".split_puncts(",")` -> `"+-"`
+    ///
+    /// `self` is `"-+"`
     #[allow(clippy::missing_panics_doc)]
     pub fn split_puncts(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
         let puncts = puncts.as_ref();
@@ -147,6 +149,46 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
             if self.peek_i_puncts(i, puncts).is_some() {
                 let left = self.take(i).collect();
                 let _ = self.next_puncts(puncts).unwrap();
+                break Some(left);
+            }
+            self.peek_i(i)?;
+            i += 1;
+        }
+    }
+
+    /// Split [`TokenStream`] with `puncts`
+    ///
+    /// Like `"+-,-+".split_puncts_exclude(",")` -> `"+-"`
+    ///
+    /// `self` is `",-+"`
+    #[allow(clippy::missing_panics_doc)]
+    pub fn split_puncts_exclude(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
+        let puncts = puncts.as_ref();
+        let mut i = 0;
+
+        loop {
+            if self.peek_i_puncts(i, puncts).is_some() {
+                let left = self.take(i).collect();
+                break Some(left);
+            }
+            self.peek_i(i)?;
+            i += 1;
+        }
+    }
+
+    /// Split [`TokenStream`] with `puncts`
+    ///
+    /// Like `"+-,-+".split_puncts_include(",")` -> `"+-,"`
+    ///
+    /// `self` is `"-+"`
+    #[allow(clippy::missing_panics_doc)]
+    pub fn split_puncts_include(&mut self, puncts: impl AsRef<[u8]>) -> Option<TokenStream> {
+        let puncts = puncts.as_ref();
+        let mut i = 0;
+
+        loop {
+            if self.peek_i_puncts(i, puncts).is_some() {
+                let left = self.take(i+puncts.len()).collect();
                 break Some(left);
             }
             self.peek_i(i)?;
