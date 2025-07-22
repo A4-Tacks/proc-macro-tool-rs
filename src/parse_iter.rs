@@ -1,21 +1,40 @@
 use crate::{stream, TokenTreeExt as _};
-use proc_macro::{Spacing::*, Span, TokenStream, TokenTree};
+use proc_macro::{Group, Spacing::*, Span, TokenStream, TokenTree};
 use std::{array, collections::VecDeque, iter::{self, FusedIterator}};
 
 /// Create [`ParseIter`]
 pub trait ParseIterExt: IntoIterator<Item = TokenTree> + Sized {
     /// Create [`ParseIter`]
     fn parse_iter(self) -> ParseIter<Self::IntoIter> {
-        ParseIter { iter: self.into_iter(), buf: VecDeque::new() }
+        ParseIter {
+            iter: self.into_iter(),
+            buf: VecDeque::new(),
+            end_span: Span::call_site(),
+        }
     }
 }
 impl<I: IntoIterator<Item = TokenTree>> ParseIterExt for I { }
+
+/// Create [`ParseIter`]
+pub trait ParseIterGroupExt: Into<Group> + Sized {
+    /// Create [`ParseIter`]
+    fn stream_parse_iter(self) -> ParseIter<<TokenStream as IntoIterator>::IntoIter> {
+        let group: Group = self.into();
+        ParseIter {
+            iter: group.stream().into_iter(),
+            buf: VecDeque::new(),
+            end_span: group.span_close(),
+        }
+    }
+}
+impl ParseIterGroupExt for Group { }
 
 /// Peek `n` iterator adapter
 #[derive(Debug, Clone)]
 pub struct ParseIter<I: Iterator<Item = TokenTree>> {
     iter: I,
     buf: VecDeque<TokenTree>,
+    end_span: Span,
 }
 
 impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
@@ -62,14 +81,18 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         Some(&self.buf[i])
     }
 
-    /// Get current token span. return [`Span::call_site`] when nothing token
+    /// Get current token span.
+    /// return [`self.end_span`](#method.end_span) when nothing token
     pub fn span(&mut self) -> Span {
-        self.peek().map_or_else(Span::call_site, TokenTree::span)
+        let end_span = self.end_span;
+        self.peek().map_or(end_span, TokenTree::span)
     }
 
-    /// Get `i`th token span. return [`Span::call_site`] when nothing token
+    /// Get `i`th token span.
+    /// return [`self.end_span`](#method.end_span) when nothing token
     pub fn span_i(&mut self, i: usize) -> Span {
-        self.peek_i(i).map_or_else(Span::call_site, TokenTree::span)
+        let end_span = self.end_span;
+        self.peek_i(i).map_or(end_span, TokenTree::span)
     }
 
     pub fn peek_is<F>(&mut self, f: F) -> bool
@@ -259,6 +282,14 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
             return Some(self.next().unwrap().into());
         }
         None
+    }
+
+    pub fn end_span(&self) -> Span {
+        self.end_span
+    }
+
+    pub fn set_end_span(&mut self, end_span: Span) {
+        self.end_span = end_span;
     }
 }
 impl<I: Iterator<Item = TokenTree>> Iterator for ParseIter<I> {
