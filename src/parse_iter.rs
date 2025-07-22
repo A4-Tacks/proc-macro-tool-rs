@@ -167,6 +167,9 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         })
     }
 
+    /// # Note
+    ///
+    /// This method parse like `#[...]`
     pub fn next_attributes(&mut self) -> Vec<TokenStream> {
         let mut attributes = vec![];
 
@@ -179,6 +182,9 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         attributes
     }
 
+    /// # Note
+    ///
+    /// This method parse like `#![...]`
     pub fn next_outer_attributes(&mut self) -> Vec<TokenStream> {
         let mut attributes = vec![];
 
