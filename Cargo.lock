@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "proc-macro-tool"
-version = "0.8.36"
+version = "0.8.37"
 
 [[package]]
 name = "testit"

@@ -54,6 +54,12 @@ impl<I: Iterator<Item = TokenTree>> ParseIter<I> {
         }
     }
 
+    pub fn next_is<F>(&mut self, f: F) -> bool
+    where F: FnOnce(TokenTree) -> bool,
+    {
+        self.next().is_some_and(f)
+    }
+
     pub fn next_i_if<F>(&mut self, i: usize, f: F) -> Option<TokenTree>
     where F: FnOnce(&TokenTree) -> bool,
     {
