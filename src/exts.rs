@@ -621,6 +621,21 @@ impl StrExt for str {
     }
 }
 
+pub trait BoolExt {
+    /// Call [`Ident::new`]
+    fn ident(&self) -> Ident;
+}
+impl BoolExt for bool {
+    fn ident(&self) -> Ident {
+        let name = if *self {
+            "true"
+        } else {
+            "false"
+        };
+        Ident::new(name, Span::call_site())
+    }
+}
+
 pub trait GroupExt {
     #[must_use]
     fn map<F>(&self, f: F) -> Self
