@@ -640,6 +640,23 @@ pub trait GroupExt {
     #[must_use]
     fn map<F>(&self, f: F) -> Self
     where F: FnOnce(TokenStream) -> TokenStream;
+
+    #[must_use]
+    fn map_tts<F>(&self, f: F) -> Self
+    where F: FnMut(TokenTree) -> TokenTree,
+          Self: Sized,
+    {
+        self.map(|stream| stream.into_iter().map(f).collect())
+    }
+
+    #[must_use]
+    fn flat_map_tts<F, I>(&self, f: F) -> Self
+    where F: FnMut(TokenTree) -> I,
+          I: IntoIterator<Item = TokenTree>,
+          Self: Sized,
+    {
+        self.map(|stream| stream.into_iter().flat_map(f).collect())
+    }
 }
 impl GroupExt for Group {
     fn map<F>(&self, f: F) -> Self
