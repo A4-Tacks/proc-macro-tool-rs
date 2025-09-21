@@ -408,6 +408,42 @@ pub trait TokenTreeExt: Into<TokenTree> + Sized {
         self.as_punct().map(|p| p.as_char())
     }
 
+    fn as_punch(&self, ch: char) -> Option<&Punct> {
+        self.as_punct()
+            .filter(|it| it.as_char() == ch)
+    }
+
+    fn as_keyword(&self, keyword: &str) -> Option<&Ident> {
+        self.as_ident()
+            .filter(|id| id.is_keyword(keyword))
+    }
+
+    fn to_punch(&self, ch: char) -> Result<&Punct, &Self> {
+        self.as_punch(ch)
+            .ok_or(self)
+    }
+
+    fn to_keyword(&self, keyword: &str) -> Result<&Ident, &Self> {
+        self.as_keyword(keyword)
+            .ok_or(self)
+    }
+
+    fn into_punch(self, ch: char) -> Result<Punct, Self> {
+        if self.is_punch(ch) {
+            self.into_punct()
+        } else {
+            Err(self)
+        }
+    }
+
+    fn into_keyword(self, keyword: &str) -> Result<Ident, Self> {
+        if self.is_keyword(keyword) {
+            self.into_ident()
+        } else {
+            Err(self)
+        }
+    }
+
     /// [`Into`] [`TokenTree`], like [`TokenTree::from(self)`]
     ///
     /// [`TokenTree::from(self)`]: TokenTree::from
