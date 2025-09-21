@@ -33,6 +33,9 @@ macro_rules! err {
     (@($($f:tt)*) $($rest:tt)*) => {
         $crate::err!(&::std::format!($($f)*) $($rest)*)
     };
+    (@$f:literal $($rest:tt)*) => {
+        $crate::err!(&::std::format!($f) $($rest)*)
+    };
 }
 
 /// [`return rerr(msg [, span])`](rerr())
@@ -47,4 +50,18 @@ macro_rules! rerr {
     (@($($f:tt)*) $($rest:tt)*) => {
         $crate::rerr!(&::std::format!($($f)*) $($rest)*)
     };
+    (@$f:literal $($rest:tt)*) => {
+        $crate::rerr!(&::std::format!($f) $($rest)*)
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[deny(unused)]
+    fn _test_rerr() -> Result<(), proc_macro::TokenStream> {
+        let msg = "abc";
+        rerr!(@"{msg}");
+    }
 }
